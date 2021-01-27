@@ -108,14 +108,14 @@ bool terminate(std_srvs::Empty::Request& request,std_srvs::Empty::Response& resp
     return true;
 }
 
-int postPoseTransform(const char * name, float x, float y, float z)
+int postPoseTransform(const char * parentName, const char * jointName, float x, float y, float z)
 {
     static tf::TransformBroadcaster br;
     tf::Transform transform;
     transform.setOrigin(tf::Vector3(x, y, z));
     transform.setRotation(tf::createQuaternionFromRPY(0, 0, 0) );  // if we just have xyz we dont have a rotation
 
-    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), tfRoot, name));
+    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), parentName , jointName));
     return 1;
 }
 
@@ -367,18 +367,54 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
     mocapNETProcessImage(bgrMat);
     
     
-    std::vector<float> points3D = convertBVHFrameToFlat3DPoints(mnet.currentSolution); 
-    for (unsigned int pointID=0; pointID<points3D.size()/3; pointID++)
+    
+    int useSimpleBroadcaster=1;
+    
+    if (useSimpleBroadcaster)
     {
-        char pubName[512];
-        snprintf(pubName,512,"%s",MocapNETOutputJointNames[pointID]);
+       //Simple 3D point broadcaster where every frame is in reference to TFRoot and there are no rotations
+       std::vector<float> points3D = convertBVHFrameToFlat3DPoints(mnet.currentSolution); 
+       for (unsigned int pointID=0; pointID<points3D.size()/3; pointID++)
+        {
+         char pubName[512];
+         snprintf(pubName,512,"%s",MocapNETOutputJointNames[pointID]); 
+         
+         postPoseTransform(
+                           tfRoot,
+                           pubName,
+                           points3D[pointID*3+0]/100,
+                           points3D[pointID*3+1]/100,
+                           points3D[pointID*3+2]/100
+                          ); 
+        }  
+    } else
+    {
+       std::vector<float> points3D = convertBVHFrameToFlat3DPoints(mnet.currentSolution); 
+       for (unsigned int pointID=0; pointID<points3D.size()/3; pointID++)
+        {
+         char parentName[512];  
+         char pubName[512];  
+         if (pointID!=0)
+         {
+          snprintf(parentName,512,"%s",getBVHJointName(getBVHParentJoint(pointID))); 
+          snprintf(pubName,512,"%s",MocapNETOutputJointNames[pointID]); 
+         } else
+         {
+          snprintf(parentName,512,"map"); 
+          snprintf(pubName,512,"%s",MocapNETOutputJointNames[pointID]); 
+         }
+        
+        
+        
         postPoseTransform(
+                          parentName,
                           pubName,
                           points3D[pointID*3+0]/100,
                           points3D[pointID*3+1]/100,
                           points3D[pointID*3+2]/100
                          );
         
+        }  
     }
     
     cv::waitKey(1);
