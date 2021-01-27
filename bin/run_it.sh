@@ -5,11 +5,6 @@ STARTDIR=`pwd`
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$DIR"
 
-#make sure stuff are in place..
-ln -s ../dependencies/MocapNET/dataset/
-ln -s ../dependencies/MocapNET/libJointEstimator2D.so
-ln -s ../dependencies/MocapNET/libMocapNETLib2.so
-
 
 cd ..
 cd ..
