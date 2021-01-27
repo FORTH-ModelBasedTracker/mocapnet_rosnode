@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>   
+    <node name="mocapnet" pkg="mocapnet" type="run_it.sh" required="true" output="screen" cwd="node" respawn="true">
+      <param name="name" value="mocapnet" /> 
+      <param name="fromRGBTopic" value="/camera/rgb/image_rect_color" /> 
+      <param name="fromRGBTopicInfo" value="/camera/rgb/camera_info" />
+      <param name="tfRoot" value="map" /> 
+    </node>   
+</launch>
