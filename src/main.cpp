@@ -371,7 +371,7 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
     for (unsigned int pointID=0; pointID<points3D.size()/3; pointID++)
     {
         char pubName[512];
-        snprintf(pubName,512,"point_%u",pointID);
+        snprintf(pubName,512,"%s",MocapNETOutputJointNames[pointID]);
         postPoseTransform(
                           pubName,
                           points3D[pointID*3+0]/100,
