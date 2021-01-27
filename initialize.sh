@@ -36,7 +36,7 @@ done
 if [ -f dependencies/MocapNET/README.md ]; then
 echo "MocapNET appears to already exist .."
 else 
-  echo "     Do you want to automatically download the MocapNET project ? " 
+  echo "       Do you want to automatically download the MocapNET project ? " 
   echo " If you don't have it already installed somewhere on your hard drive select yes " 
   echo
   echo -n " (Y/N)?"
@@ -45,20 +45,22 @@ else
   then 
      echo "Downloading.."
      cd "$DIR/dependencies"
-     #git clone https://github.com/FORTH-ModelBasedTracker/MocapNET
-     #cd MocapNET
-     #./initialize.sh
+     git clone https://github.com/FORTH-ModelBasedTracker/MocapNET
+     cd MocapNET
+     ./initialize.sh
      cd "$DIR"
    else
    echo "Please give the exact path to your MocapNET installation!"
-   echo "Be careful with spaces!"
+   echo "It is assumed you already have run the initialize.sh script on the MocapNET directory you will specify.."
+   echo "Also, be careful with spaces!"
    echo -n "Path:"
    read MOCAPNET_PATH
     if [ -f $MOCAPNET_PATH/initialize.sh ]; then
      echo "Thank you, found it..!"
-     
      cd "$DIR/dependencies"
      ln -s $MOCAPNET_PATH MocapNET
+    else
+     echo "Couldn't find |$MOCAPNET_PATH| .. Please start over the script again.."  
     fi
   fi
 fi 
@@ -74,6 +76,7 @@ if [ -f dependencies/MocapNET/initialize.sh ]; then
  ln -s ../dependencies/MocapNET/libJointEstimator2D.so
  ln -s ../dependencies/MocapNET/libMocapNETLib2.so
 
+ echo "Finished.."
 fi
 
 
