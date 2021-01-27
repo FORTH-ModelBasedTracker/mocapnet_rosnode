@@ -1,6 +1,8 @@
 # mocapnet_rosnode
 
-A ROS node for the MocapNET 3D Pose Estimator
+A ROS node for the [MocapNET 3D Pose Estimator](https://github.com/FORTH-ModelBasedTracker/MocapNET) 
+
+
 Please only use this issues page for issues with the ROS wrapper, the main development repository of MocapNET is [here](https://github.com/FORTH-ModelBasedTracker/MocapNET) 
 
 
