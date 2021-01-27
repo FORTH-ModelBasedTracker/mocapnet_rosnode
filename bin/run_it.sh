@@ -38,7 +38,7 @@ else
    fi
 fi 
 
-LD_LIBRARY_PATH=./:$LD_LIBRARY_PATH "$PATHOFBIN" $@
+LD_LIBRARY_PATH=./:..//dependencies/MocapNET/dependencies/libtensorflow/lib/:$LD_LIBRARY_PATH "$PATHOFBIN" $@
 
 cd "$STARTDIR"
 exit 0

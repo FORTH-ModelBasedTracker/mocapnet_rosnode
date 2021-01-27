@@ -5,7 +5,7 @@ project(mocapnet_rosnode)
 add_definitions(-DALL_HEADERS_IN_SAME_DIR)
  
 if(NOT OpenCV_DIR)
- find_path(OpenCV_DIR "OpenCVConfig.cmake" DOC "Root directory of OpenCV" HINTS    "/opt/ros/noetic/share/OpenCV/")
+ find_path(OpenCV_DIR "OpenCVConfig.cmake" DOC "Root directory of OpenCV" HINTS "/opt/ros/noetic/share/OpenCV/")
 endif(NOT OpenCV_DIR)
 FIND_PACKAGE(OpenCV REQUIRED)
 

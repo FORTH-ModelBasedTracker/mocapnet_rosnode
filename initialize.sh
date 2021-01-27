@@ -69,13 +69,21 @@ fi
 
 
 if [ -f dependencies/MocapNET/initialize.sh ]; then
+ #Make sure stuff are in place..
  echo "Setting up links"
  cd "$DIR/bin"
- #make sure stuff are in place..
+ #Retrieve tensorflow libs
+ ln -s ../dependencies/MocapNET/dependencies/MocapNET/dependencies/libtensorflow/lib/libtensorflow.so
+ ln -s ../dependencies/MocapNET/dependencies/MocapNET/dependencies/libtensorflow/lib/libtensorflow_framework.so
+ #Retrieve neural networks and datasets
  ln -s ../dependencies/MocapNET/dataset/
+ #Retrieve main MocapNET libraries.. 
  ln -s ../dependencies/MocapNET/libJointEstimator2D.so
  ln -s ../dependencies/MocapNET/libMocapNETLib2.so
-
+ #Retrieve standalone utilities
+ ln -s ../dependencies/MocapNET/OpenCVTest
+ ln -s ../dependencies/MocapNET/BVHGUI2
+ ln -s ../dependencies/MocapNET/MocapNET2LiveWebcamDemo 
  echo "Finished.."
 fi
 
