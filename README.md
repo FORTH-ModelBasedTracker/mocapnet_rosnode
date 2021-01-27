@@ -1,5 +1,8 @@
 # mocapnet_rosnode
+
 A ROS node for the MocapNET 3D Pose Estimator
+Please only use this issues page for issues with the ROS wrapper, the main development repository of MocapNET is [here](https://github.com/FORTH-ModelBasedTracker/MocapNET) 
+
 
 Step 0 : [Install ROS](http://wiki.ros.org/Installation/) 
 
@@ -23,3 +26,5 @@ cd your/work/space/path/here
 source devel/setup.bash
 roslaunch mocapnet_rosnode mocapnet_rosnode.launch
 ```
+
+Good luck!
