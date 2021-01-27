@@ -12,7 +12,7 @@ cd src/
 git clone https://github.com/FORTH-ModelBasedTracker/mocapnet_rosnode
 cd mocapnet_rosnode/
 ./initialize.sh
-cd ../build
+cd ../../build
 cmake ..
 make
 ```

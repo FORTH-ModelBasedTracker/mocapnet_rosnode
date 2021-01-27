@@ -20,7 +20,7 @@ export GLOG_logtostderr=1
  
 echo `pwd`
 
-BINNAME="mocapnet"
+BINNAME="mocapnet_rosnode"
 
 PATHOFBIN="$ROOT_ROS_WORKSPACE/devel/lib/$BINNAME/$BINNAME"
 if [ -e $PATHOFBIN ]
