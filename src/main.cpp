@@ -65,7 +65,8 @@ struct calibration
 unsigned int width=640;
 unsigned int height=480;
 
-
+int useSimpleBroadcaster=0;
+    
 //Configuration
 char tfRoot[512]={DEFAULT_TF_ROOT}; //This is the string of the root node on the TF tree
 
@@ -108,12 +109,12 @@ bool terminate(std_srvs::Empty::Request& request,std_srvs::Empty::Response& resp
     return true;
 }
 
-int postPoseTransform(const char * parentName, const char * jointName, float x, float y, float z)
+int postPoseTransform(const char * parentName, const char * jointName, float x, float y, float z, float roll, float pitch, float yaw)
 {
     static tf::TransformBroadcaster br;
     tf::Transform transform;
     transform.setOrigin(tf::Vector3(x, y, z));
-    transform.setRotation(tf::createQuaternionFromRPY(0, 0, 0) );  // if we just have xyz we dont have a rotation
+    transform.setRotation(tf::createQuaternionFromRPY(roll,pitch,yaw) );  // if we just have xyz we dont have a rotation
 
     br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), parentName , jointName));
     return 1;
@@ -368,7 +369,6 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
     
     
     
-    int useSimpleBroadcaster=1;
     
     if (useSimpleBroadcaster)
     {
@@ -377,31 +377,48 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
        for (unsigned int pointID=0; pointID<points3D.size()/3; pointID++)
         {
          char pubName[512];
-         snprintf(pubName,512,"%s",MocapNETOutputJointNames[pointID]); 
+         snprintf(pubName,512,"%s",getBVHJointName(pointID)); 
          
          postPoseTransform(
                            tfRoot,
                            pubName,
                            points3D[pointID*3+0]/100,
                            points3D[pointID*3+1]/100,
-                           points3D[pointID*3+2]/100
+                           points3D[pointID*3+2]/100,
+                           0.0,0.0,0.0
                           ); 
         }  
     } else
     {
+       fprintf(stderr,"Under construction \n");
        std::vector<float> points3D = convertBVHFrameToFlat3DPoints(mnet.currentSolution); 
        for (unsigned int pointID=0; pointID<points3D.size()/3; pointID++)
         {
+         float x,y,z; 
+         float roll,pitch,yaw;
          char parentName[512];  
          char pubName[512];  
          if (pointID!=0)
          {
+          getBVHJointOffset(pointID,&x,&y,&z);
+          x=(mnet.currentSolution[0]+x)/100;
+          y=(mnet.currentSolution[1]+y)/100;
+          z=(mnet.currentSolution[2]+z)/100;
           snprintf(parentName,512,"%s",getBVHJointName(getBVHParentJoint(pointID))); 
-          snprintf(pubName,512,"%s",MocapNETOutputJointNames[pointID]); 
+          snprintf(pubName,512,"%s",getBVHJointName(pointID)); 
+          roll = -1 *mnet.currentSolution[3 + pointID*3 + 2];
+          pitch= -1 *mnet.currentSolution[3 + pointID*3 + 1]; 
+          yaw  = -1 *mnet.currentSolution[3 + pointID*3 + 0];
          } else
          {
           snprintf(parentName,512,"map"); 
           snprintf(pubName,512,"%s",MocapNETOutputJointNames[pointID]); 
+          x=mnet.currentSolution[0]/100;
+          y=mnet.currentSolution[1]/100;
+          z=mnet.currentSolution[2]/100;
+          roll = -1 * mnet.currentSolution[3 + pointID*3 + 0];
+          pitch= -1 * mnet.currentSolution[3 + pointID*3 + 1]; 
+          yaw  = -1 * mnet.currentSolution[3 + pointID*3 + 2];
          }
         
         
@@ -409,9 +426,12 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
         postPoseTransform(
                           parentName,
                           pubName,
-                          points3D[pointID*3+0]/100,
-                          points3D[pointID*3+1]/100,
-                          points3D[pointID*3+2]/100
+                          x,//points3D[pointID*3+0]/100,
+                          y,//points3D[pointID*3+1]/100,
+                          z,//points3D[pointID*3+2]/100
+                          roll,
+                          pitch,
+                          yaw
                          );
         
         }  
