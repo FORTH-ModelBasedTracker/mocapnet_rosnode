@@ -49,7 +49,7 @@ rosservice call /mocapnet_rosnode/setCameraYaw "value: 0.0"
 
 ```
 
-You can download [this sample rosbag]() to take a look on the TF tree..
-Please note that camera movement is "encoded" as skeleton movement so  
+You can download [this sample rosbag](https://github.com/FORTH-ModelBasedTracker/mocapnet_rosnode/raw/main/doc/sample.bag) to take a look on the TF tree..
+Please note that camera movement is "encoded" as skeleton movement so usage of a static camera should be ok, however if using a moving camera you should [disable the publishCameraTF ROS parameter](https://github.com/FORTH-ModelBasedTracker/mocapnet_rosnode/blob/main/launch/mocapnet_rosnode.launch#L10) and publish your own "mocapnetCamera" tf2:transform.
 
 Good luck!
