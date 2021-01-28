@@ -47,6 +47,9 @@
 #include "../dependencies/MocapNET/src/MocapNET2/MocapNETLib2/tools.hpp"
 
 //BVH Specific stuff..
+#include "../dependencies/MocapNET/dependencies/RGBDAcquisition/tools/AmMatrix/matrixTools.h"
+#include "../dependencies/MocapNET/dependencies/RGBDAcquisition/tools/AmMatrix/matrix4x4Tools.h"
+#include "../dependencies/MocapNET/dependencies/RGBDAcquisition/tools/AmMatrix/quaternions.h"
 #include "../dependencies/MocapNET/dependencies/RGBDAcquisition/opengl_acquisition_shared_library/opengl_depth_and_color_renderer/src/Library/MotionCaptureLoader/bvh_loader.h"
 #include "../dependencies/MocapNET/dependencies/RGBDAcquisition/opengl_acquisition_shared_library/opengl_depth_and_color_renderer/src/Library/MotionCaptureLoader/calculate/bvh_project.h"
 #include "../dependencies/MocapNET/dependencies/RGBDAcquisition/opengl_acquisition_shared_library/opengl_depth_and_color_renderer/src/Library/MotionCaptureLoader/calculate/bvh_transform.h"
@@ -352,47 +355,6 @@ void mocapNETProcessImage(cv::Mat frame)
 }
 
 
-
-
-
-
-void euler2Quaternions(float * quaternions,float * euler)
-{
-    //This conversion follows the rule euler X Y Z  to quaternions W X Y Z
-    //Our input is degrees so we convert it to radians for the sin/cos functions
-    float eX = (float) (euler[0] * M_PI) / 180;
-    float eY = (float) (euler[1] * M_PI) / 180;
-    float eZ = (float) (euler[2] * M_PI) / 180;
-
-    //fprintf(stderr,"eX %f eY %f eZ %f\n",eX,eY,eZ);
-
-    //http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
-    //eX Roll  φ - rotation about the X-axis
-    //eY Pitch θ - rotation about the Y-axis
-    //eZ Yaw   ψ - rotation about the Z-axis
-
-    float cosX2 = cos((float) eX/2); //cos(φ/2);
-    float sinX2 = sin((float) eX/2); //sin(φ/2);
-    float cosY2 = cos((float) eY/2); //cos(θ/2);
-    float sinY2 = sin((float) eY/2); //sin(θ/2);
-    float cosZ2 = cos((float) eZ/2); //cos(ψ/2);
-    float sinZ2 = sin((float) eZ/2); //sin(ψ/2);
-
-    float qX = (sinX2 * cosY2 * cosZ2) - (cosX2 * sinY2 * sinZ2);
-    float qY = (cosX2 * sinY2 * cosZ2) + (sinX2 * cosY2 * sinZ2);
-    float qZ = (cosX2 * cosY2 * sinZ2) - (sinX2 * sinY2 * cosZ2);
-    float qW = (cosX2 * cosY2 * cosZ2) + (sinX2 * sinY2 * sinZ2);
-    
-    quaternions[0] = qX;
-    quaternions[1] = qY;
-    quaternions[2] = qZ;
-    quaternions[3] = qW;
-}
-
-
-
-
-
 float * mallocVectorR(std::vector<float> bvhFrame)
 {
    if (bvhFrame.size()==0)
@@ -542,20 +504,47 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
           xRotation = bvhFrame[3 + (jointID*3) + 2];
          }
         
-        euler[2]=-1*xRotation;
-        euler[1]=-1*yRotation;
-        euler[0]=-1*zRotation; 
-        euler2Quaternions(quaternion,euler);
+        
+        //Method 1 - Not working
+        //euler[2]=-1*xRotation;
+        //euler[1]=-1*yRotation;
+        //euler[0]=-1*zRotation; 
+        //euler2Quaternions(quaternion,euler,qXqYqZqW);
+ 
+        //Method 2 - Not Working
+        //struct Matrix4x4OfFloats corrected;
+        //struct Matrix4x4OfFloats inversion;
+        //inversion.m[0]=1.0;  inversion.m[1 ]=0.0; inversion.m[2 ]=0.0; inversion.m[3 ]=0.0; 
+        //inversion.m[4]=0.0;  inversion.m[5 ]=1.0; inversion.m[6 ]=0.0; inversion.m[7 ]=0.0; 
+        //inversion.m[8]=0.0;  inversion.m[9 ]=0.0; inversion.m[10]=-1.0; inversion.m[11]=0.0; 
+        //inversion.m[12]=0.0; inversion.m[13]=0.0; inversion.m[14]=0.0; inversion.m[15]=1.0;
+        //multiplyTwo4x4FMatrices_Naive(corrected.m,inversion.m,bvhTransform.joint[jointID].dynamicRotation.m);
+        //transpose4x4FMatrix(bvhTransform.joint[jointID].dynamicRotation.m);
+        //matrix4x42Quaternion(quaternion,qXqYqZqW,corrected.m);
+        //normalizeQuaternions(&quaternion[0],&quaternion[1],&quaternion[2],&quaternion[3]);
+        
+        //Method 3 - Not Working
+        tf2::Quaternion rX(tf2::Vector3(-1,0,0),degreesToRadians(-xRotation));
+        tf2::Quaternion rY(tf2::Vector3(0,1,0),degreesToRadians(-yRotation));
+        tf2::Quaternion rZ(tf2::Vector3(0,0,1),degreesToRadians(-zRotation)); 
+        tf2::Quaternion qXYZW = rZ * rX * rY;
+        
+        quaternion[0]=qXYZW.x();
+        quaternion[1]=qXYZW.y();
+        quaternion[2]=qXYZW.z();
+        quaternion[3]=qXYZW.w();
+        
+        
         postPoseTransform(
                           parentName,
                           pubName,
                           x,//points3D[pointID*3+0]/100,
                           y,//points3D[pointID*3+1]/100,
                           z,//points3D[pointID*3+2]/100
-                          quaternion[0],
-                          quaternion[1],
-                          quaternion[2],
-                          quaternion[3]
+                          quaternion[0],//qX
+                          quaternion[1],//qW
+                          quaternion[2],//qZ
+                          quaternion[3] //qW
                          );
         
         }  
