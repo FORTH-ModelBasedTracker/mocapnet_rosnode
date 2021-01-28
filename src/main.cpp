@@ -138,36 +138,6 @@ bool terminate(std_srvs::Empty::Request& request,std_srvs::Empty::Response& resp
     return true;
 }
 
-int postPoseTransform(const char * parentName, const char * jointName, float x, float y, float z, float qX, float qY, float qZ,float qW)
-{
-    //TF1 code
-    //static tf::TransformBroadcaster br;
-    //tf::Transform transform;
-    //transform.setOrigin(tf::Vector3(x, y, z));
-    //transform.setRotation(tf::createQuaternionFromRPY(roll,pitch,yaw) );  // if we just have xyz we dont have a rotation
-    //transform.setRotation(tf::Quaternion(qX,qY,qZ,qW));  // if we just have xyz we dont have a rotation
-    //br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), parentName , jointName));
-    
-    static tf2_ros::TransformBroadcaster br;
-    geometry_msgs::TransformStamped transformStamped;
-    transformStamped.header.stamp = ros::Time::now();
-    transformStamped.header.frame_id = parentName;
-    transformStamped.child_frame_id = jointName;
-    transformStamped.transform.translation.x = x;
-    transformStamped.transform.translation.y = y;
-    transformStamped.transform.translation.z = z;
-    
-    tf2::Quaternion q;
-    q.setRPY(0, 0,0);
-    
-    transformStamped.transform.rotation.x = qX;//q.x();
-    transformStamped.transform.rotation.y = qY;//q.y();
-    transformStamped.transform.rotation.z = qZ;//q.z();
-    transformStamped.transform.rotation.w = qW;//q.w();
-    
-    br.sendTransform(transformStamped);
-    return 1;
-}
 
 void mocapNETProcessImage(cv::Mat frame)
 {
@@ -376,6 +346,38 @@ float * mallocVectorR(std::vector<float> bvhFrame)
 }
 
 
+int postPoseTransform(const char * parentName, const char * jointName, float x, float y, float z, float qX, float qY, float qZ,float qW)
+{
+    //TF1 code
+    //static tf::TransformBroadcaster br;
+    //tf::Transform transform;
+    //transform.setOrigin(tf::Vector3(x, y, z));
+    //transform.setRotation(tf::createQuaternionFromRPY(roll,pitch,yaw) );  // if we just have xyz we dont have a rotation
+    //transform.setRotation(tf::Quaternion(qX,qY,qZ,qW));  // if we just have xyz we dont have a rotation
+    //br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), parentName , jointName));
+    
+    static tf2_ros::TransformBroadcaster br;
+    geometry_msgs::TransformStamped transformStamped;
+    transformStamped.header.stamp = ros::Time::now();
+    transformStamped.header.frame_id = parentName;
+    transformStamped.child_frame_id = jointName;
+    transformStamped.transform.translation.x = x;
+    transformStamped.transform.translation.y = y;
+    transformStamped.transform.translation.z = z;
+    
+    tf2::Quaternion q;
+    q.setRPY(0, 0,0);
+    
+    transformStamped.transform.rotation.x = (double) qX;//q.x();
+    transformStamped.transform.rotation.y = (double) qY;//q.y();
+    transformStamped.transform.rotation.z = (double) qZ;//q.z();
+    transformStamped.transform.rotation.w = (double) qW;//q.w();
+    
+    br.sendTransform(transformStamped);
+    return 1;
+}
+
+
 //RGB Callback is called every time we get a new frame, it is synchronized to the main thread
 void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msgs::CameraInfo::ConstPtr camera_info_msg)
 {
@@ -430,7 +432,18 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
     
     //http://wiki.ros.org/tf/Overview/Data%20Types
     //http://wiki.ros.org/tf/Overview/Transformations#tf2.2FTerminology.Frames_and_Points
-    std::vector<float> bvhFrame = mnet.currentSolution; 
+    
+    std::vector<float> bvhFrame;
+    for (unsigned int i=0; i<bvhMotion.numberOfValuesPerFrame; i++)
+    {
+        bvhFrame.push_back(0.0);
+    }
+    bvhFrame[2]=-130;
+    bvhFrame[237]=74;
+    bvhFrame[239]=74;
+    
+    //std::vector<float> bvhFrame = mnet.currentSolution; 
+    
     
     if (useSimpleBroadcaster)
     {
@@ -453,104 +466,124 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
     } else
     {
        fprintf(stderr,"Under construction \n");
-       bvh_cleanTransform(&bvhMotion,&bvhTransform);
-       float * motionBuffer= mallocVectorR(bvhFrame);
        
-       if (motionBuffer!=0)
+       if (bvhFrame.size()==bvhMotion.numberOfValuesPerFrame)
        {
-           
-                    if (
-                           bvh_loadTransformForMotionBuffer(
-                                                            &bvhMotion,
-                                                            motionBuffer,
-                                                            &bvhTransform,
-                                                            0//Dont need extra information
-                                                           )
-                        )
-                        {
-                    
-       float euler[3];
-       float quaternion[4];
-       float x,y,z,xRotation,yRotation,zRotation;
-       char parentName[512];  
-       char pubName[512];  
-       
-       //getBVHNumberOfValuesPerFrame
-       for (unsigned int jointID=0; jointID<=getBVHNumberOfJoints(); jointID++)
+        float * motionBuffer= mallocVectorR(bvhFrame);
+        
+        
+        if (motionBuffer!=0)
         {
-         if (jointID!=0)
-         {
-          unsigned int parentPointID=getBVHParentJoint(jointID);
-          
-          getBVHJointOffset(jointID,&x,&y,&z);
-          x=x/100;
-          y=y/100;
-          z=z/100;
-          snprintf(parentName,512,"%s",getBVHJointName(parentPointID)); 
-          snprintf(pubName,512,"%s",getBVHJointName(jointID)); 
-          zRotation = bvhFrame[3 + (jointID*3) + 0];
-          xRotation = bvhFrame[3 + (jointID*3) + 1]; 
-          yRotation = bvhFrame[3 + (jointID*3) + 2]; 
-         } else
-         {
-           //Special handling for hip
-          snprintf(parentName,512,"map"); 
-          snprintf(pubName,512,"%s",MocapNETOutputJointNames[jointID]); 
-          x=bvhFrame[0]/100;
-          y=bvhFrame[1]/100;
-          z=bvhFrame[2]/100;
-          zRotation = bvhFrame[3 + (jointID*3) + 0];
-          yRotation = bvhFrame[3 + (jointID*3) + 1]; 
-          xRotation = bvhFrame[3 + (jointID*3) + 2];
-         }
+          //Sanity check..
+          //-------------------------------------------------
+          /*
+          unsigned int checkIsSuccessful=1;
+          for (unsigned int i=0; i<bvhFrame.size(); i++)
+          {
+              if (bvhFrame[i]!=motionBuffer[i])
+              {
+                  checkIsSuccessful=0;
+                  fprintf(stderr,"Check error %u ( %0.2f vs %0.2f) \n",i,bvhFrame[i],motionBuffer[i]);
+              }
+          }*/
+
+        
+          bvh_cleanTransform(&bvhMotion,&bvhTransform);
+          if (
+               bvh_loadTransformForMotionBuffer(
+                                                 &bvhMotion,
+                                                 motionBuffer,
+                                                 &bvhTransform,
+                                                 0//Dont need extra information
+                                                )
+              )
+              {
+                float euler[3]={0};
+                float quaternion[4]={0};
+                float x,y,z,xRotation,yRotation,zRotation;
+                char parentName[512];  
+                char jointName[512];  
+       
+                //getBVHNumberOfValuesPerFrame
+                for (BVHJointID jointID=0; jointID<=bvhMotion.jointHierarchySize; jointID++)
+                 {
+                  if (jointID!=0)
+                  {
+                   unsigned int parentJointID=getBVHParentJoint(jointID);
+                   snprintf(parentName,512,"%s",bvhMotion.jointHierarchy[parentJointID].jointName); 
+                   snprintf(jointName,512,"%s",bvhMotion.jointHierarchy[jointID].jointName); 
+                   //------------------------------------------------------------------------------
+                   x=bvhMotion.jointHierarchy[jointID].offset[0]/100;
+                   y=bvhMotion.jointHierarchy[jointID].offset[1]/100;
+                   z=bvhMotion.jointHierarchy[jointID].offset[2]/100;
+                   
+                   xRotation = bvh_getJointRotationXAtMotionBuffer(&bvhMotion,jointID,motionBuffer);
+                   yRotation = bvh_getJointRotationYAtMotionBuffer(&bvhMotion,jointID,motionBuffer);
+                   zRotation = bvh_getJointRotationZAtMotionBuffer(&bvhMotion,jointID,motionBuffer); 
+                  } else
+                  {
+                    //Special handling for hip
+                   snprintf(parentName,512,"map"); 
+                   snprintf(jointName,512,"%s",bvhMotion.jointHierarchy[jointID].jointName); 
+                   x=bvhFrame[0]/100;
+                   y=bvhFrame[1]/100;
+                   z=bvhFrame[2]/100;
+                   zRotation = bvhFrame[3 + (jointID*3) + 0];
+                   yRotation = bvhFrame[3 + (jointID*3) + 1]; 
+                   xRotation = bvhFrame[3 + (jointID*3) + 2];
+                  }
         
         
-        //Method 1 - Not working
-        //euler[2]=-1*xRotation;
-        //euler[1]=-1*yRotation;
-        //euler[0]=-1*zRotation; 
-        //euler2Quaternions(quaternion,euler,qXqYqZqW);
+                 //Method 1 - Not working
+                 //euler[2]=-1*xRotation;
+                 //euler[1]=-1*yRotation;
+                 //euler[0]=-1*zRotation; 
+                 //euler2Quaternions(quaternion,euler,qXqYqZqW);
  
-        //Method 2 - Not Working
-        //struct Matrix4x4OfFloats corrected;
-        //struct Matrix4x4OfFloats inversion;
-        //inversion.m[0]=1.0;  inversion.m[1 ]=0.0; inversion.m[2 ]=0.0; inversion.m[3 ]=0.0; 
-        //inversion.m[4]=0.0;  inversion.m[5 ]=1.0; inversion.m[6 ]=0.0; inversion.m[7 ]=0.0; 
-        //inversion.m[8]=0.0;  inversion.m[9 ]=0.0; inversion.m[10]=-1.0; inversion.m[11]=0.0; 
-        //inversion.m[12]=0.0; inversion.m[13]=0.0; inversion.m[14]=0.0; inversion.m[15]=1.0;
-        //multiplyTwo4x4FMatrices_Naive(corrected.m,inversion.m,bvhTransform.joint[jointID].dynamicRotation.m);
-        //transpose4x4FMatrix(bvhTransform.joint[jointID].dynamicRotation.m);
-        //matrix4x42Quaternion(quaternion,qXqYqZqW,corrected.m);
-        //normalizeQuaternions(&quaternion[0],&quaternion[1],&quaternion[2],&quaternion[3]);
+                 //Method 2 - Not Working
+                 //struct Matrix4x4OfFloats corrected;
+                 //struct Matrix4x4OfFloats inversion;
+                 //inversion.m[0]=1.0;  inversion.m[1 ]=0.0; inversion.m[2 ]=0.0; inversion.m[3 ]=0.0; 
+                 //inversion.m[4]=0.0;  inversion.m[5 ]=1.0; inversion.m[6 ]=0.0; inversion.m[7 ]=0.0; 
+                 //inversion.m[8]=0.0;  inversion.m[9 ]=0.0; inversion.m[10]=-1.0; inversion.m[11]=0.0; 
+                 //inversion.m[12]=0.0; inversion.m[13]=0.0; inversion.m[14]=0.0; inversion.m[15]=1.0;
+                 //multiplyTwo4x4FMatrices_Naive(corrected.m,inversion.m,bvhTransform.joint[jointID].dynamicRotation.m);
+                 //transpose4x4FMatrix(bvhTransform.joint[jointID].dynamicRotation.m);
+                 //matrix4x42Quaternion(quaternion,qXqYqZqW,corrected.m);
+                 //normalizeQuaternions(&quaternion[0],&quaternion[1],&quaternion[2],&quaternion[3]);
         
-        //Method 3 - Not Working
-        tf2::Quaternion rX(tf2::Vector3(-1,0,0),degreesToRadians(-xRotation));
-        tf2::Quaternion rY(tf2::Vector3(0,1,0),degreesToRadians(-yRotation));
-        tf2::Quaternion rZ(tf2::Vector3(0,0,1),degreesToRadians(-zRotation)); 
-        tf2::Quaternion qXYZW = rZ * rX * rY;
+                 //Method 3 - Not Working
+                 tf2::Quaternion rX(tf2::Vector3(1,0,0),degreesToRadians(-xRotation));
+                 tf2::Quaternion rY(tf2::Vector3(0,1,0),degreesToRadians(-yRotation));
+                 tf2::Quaternion rZ(tf2::Vector3(0,0,-1),degreesToRadians(-zRotation)); 
+                 tf2::Quaternion qXYZW = rZ * rX * rY;
         
-        quaternion[0]=qXYZW.x();
-        quaternion[1]=qXYZW.y();
-        quaternion[2]=qXYZW.z();
-        quaternion[3]=qXYZW.w();
+                 quaternion[0]=qXYZW.x();
+                 quaternion[1]=qXYZW.y();
+                 quaternion[2]=qXYZW.z();
+                 quaternion[3]=qXYZW.w();
         
         
-        postPoseTransform(
-                          parentName,
-                          pubName,
-                          x,//points3D[pointID*3+0]/100,
-                          y,//points3D[pointID*3+1]/100,
-                          z,//points3D[pointID*3+2]/100
-                          quaternion[0],//qX
-                          quaternion[1],//qW
-                          quaternion[2],//qZ
-                          quaternion[3] //qW
-                         );
+                 postPoseTransform(
+                                   parentName,
+                                   jointName,
+                                   x,//points3D[pointID*3+0]/100,
+                                   y,//points3D[pointID*3+1]/100,
+                                   z,//points3D[pointID*3+2]/100
+                                   quaternion[0],//qX
+                                   quaternion[1],//qW
+                                   quaternion[2],//qZ
+                                   quaternion[3] //qW
+                                  );
         
-        }  
-                        }
+                 }  
+            }
         free(motionBuffer);
        }
+      } else
+      {
+          fprintf(stderr,"Wrong number of values in bvh frame, expected %u and got %lu.. \n",bvhMotion.numberOfValuesPerFrame,bvhFrame.size());
+      }
     }
     
     cv::waitKey(1);
