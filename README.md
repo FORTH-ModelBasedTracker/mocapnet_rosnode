@@ -33,4 +33,7 @@ Feel free to make your own ros launcher by using the default [mocapnet_rosnode.l
 
 The default settings are /camera/rgb/image_rect_color for the RGB image topic, /camera/rgb/camera_info for the camera calibration and map as the TF root. 
 
+![mocapnet_rosnode screenshot with rviz](https://raw.githubusercontent.com/FORTH-ModelBasedTracker/mocapnet_rosnode/main/doc/screenshot.jpg)
+
+
 Good luck!
