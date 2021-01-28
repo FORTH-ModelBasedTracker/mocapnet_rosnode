@@ -428,21 +428,24 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
     //After we have our bgr Frame ready and we added the FPS text , lets show it!
     cv::imshow("MocapNET - RGB input",bgrMat);
     
+    //All MocapNET stuff in one call.. :P
     mocapNETProcessImage(bgrMat);
     
-    //http://wiki.ros.org/tf/Overview/Data%20Types
-    //http://wiki.ros.org/tf/Overview/Transformations#tf2.2FTerminology.Frames_and_Points
+    //Set to 1 to broadcast skeleton with the left hand as t-pose and the right hand in front to make sense of the coordinate system
+    #define STATIC_SKELETON_TO_UNDERSTAND_COORDINATE_SYSTEM 0
     
-    std::vector<float> bvhFrame;
-    for (unsigned int i=0; i<bvhMotion.numberOfValuesPerFrame; i++)
-    {
+    #if STATIC_SKELETON_TO_UNDERSTAND_COORDINATE_SYSTEM
+      std::vector<float> bvhFrame;
+      for (unsigned int i=0; i<bvhMotion.numberOfValuesPerFrame; i++)
+      {
         bvhFrame.push_back(0.0);
-    }
-    bvhFrame[2]=-130;
-    bvhFrame[237]=74;
-    bvhFrame[239]=74;
-    
-    //std::vector<float> bvhFrame = mnet.currentSolution; 
+      }
+      bvhFrame[2]=-130;
+      bvhFrame[237]=74;
+      bvhFrame[239]=74;
+    #else
+      std::vector<float> bvhFrame = mnet.currentSolution;
+    #endif
     
     
     if (useSimpleBroadcaster)
@@ -474,20 +477,6 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
         
         if (motionBuffer!=0)
         {
-          //Sanity check..
-          //-------------------------------------------------
-          /*
-          unsigned int checkIsSuccessful=1;
-          for (unsigned int i=0; i<bvhFrame.size(); i++)
-          {
-              if (bvhFrame[i]!=motionBuffer[i])
-              {
-                  checkIsSuccessful=0;
-                  fprintf(stderr,"Check error %u ( %0.2f vs %0.2f) \n",i,bvhFrame[i],motionBuffer[i]);
-              }
-          }*/
-
-        
           bvh_cleanTransform(&bvhMotion,&bvhTransform);
           if (
                bvh_loadTransformForMotionBuffer(
@@ -503,12 +492,14 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
                 float x,y,z,xRotation,yRotation,zRotation;
                 char parentName[512];  
                 char jointName[512];  
+                 tf2::Quaternion rX,rY,rZ,qXYZW;
        
                 //getBVHNumberOfValuesPerFrame
                 for (BVHJointID jointID=0; jointID<=bvhMotion.jointHierarchySize; jointID++)
                  {
                   if (jointID!=0)
                   {
+                   //Normal joints ZXY
                    unsigned int parentJointID=getBVHParentJoint(jointID);
                    snprintf(parentName,512,"%s",bvhMotion.jointHierarchy[parentJointID].jointName); 
                    snprintf(jointName,512,"%s",bvhMotion.jointHierarchy[jointID].jointName); 
@@ -520,9 +511,13 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
                    xRotation = bvh_getJointRotationXAtMotionBuffer(&bvhMotion,jointID,motionBuffer);
                    yRotation = bvh_getJointRotationYAtMotionBuffer(&bvhMotion,jointID,motionBuffer);
                    zRotation = bvh_getJointRotationZAtMotionBuffer(&bvhMotion,jointID,motionBuffer); 
+                   rX = tf2::Quaternion(tf2::Vector3(-1,0,0),degreesToRadians(-xRotation));
+                   rY = tf2::Quaternion(tf2::Vector3(0,-1,0),degreesToRadians(-yRotation));
+                   rZ = tf2::Quaternion(tf2::Vector3(0,0,-1),degreesToRadians(-zRotation)); 
+                   qXYZW = rZ * rX * rY;
                   } else
                   {
-                    //Special handling for hip
+                    //Special handling for hip its ZYX
                    snprintf(parentName,512,"map"); 
                    snprintf(jointName,512,"%s",bvhMotion.jointHierarchy[jointID].jointName); 
                    x=bvhFrame[0]/100;
@@ -531,38 +526,16 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
                    zRotation = bvhFrame[3 + (jointID*3) + 0];
                    yRotation = bvhFrame[3 + (jointID*3) + 1]; 
                    xRotation = bvhFrame[3 + (jointID*3) + 2];
+                   rX = tf2::Quaternion(tf2::Vector3(-1,0,0),degreesToRadians(-xRotation));
+                   rY = tf2::Quaternion(tf2::Vector3(0,-1,0),degreesToRadians(-yRotation));
+                   rZ = tf2::Quaternion(tf2::Vector3(0,0,-1),degreesToRadians(-zRotation)); 
+                   qXYZW = rZ * rY * rX;
                   }
-        
-        
-                 //Method 1 - Not working
-                 //euler[2]=-1*xRotation;
-                 //euler[1]=-1*yRotation;
-                 //euler[0]=-1*zRotation; 
-                 //euler2Quaternions(quaternion,euler,qXqYqZqW);
- 
-                 //Method 2 - Not Working
-                 //struct Matrix4x4OfFloats corrected;
-                 //struct Matrix4x4OfFloats inversion;
-                 //inversion.m[0]=1.0;  inversion.m[1 ]=0.0; inversion.m[2 ]=0.0; inversion.m[3 ]=0.0; 
-                 //inversion.m[4]=0.0;  inversion.m[5 ]=1.0; inversion.m[6 ]=0.0; inversion.m[7 ]=0.0; 
-                 //inversion.m[8]=0.0;  inversion.m[9 ]=0.0; inversion.m[10]=-1.0; inversion.m[11]=0.0; 
-                 //inversion.m[12]=0.0; inversion.m[13]=0.0; inversion.m[14]=0.0; inversion.m[15]=1.0;
-                 //multiplyTwo4x4FMatrices_Naive(corrected.m,inversion.m,bvhTransform.joint[jointID].dynamicRotation.m);
-                 //transpose4x4FMatrix(bvhTransform.joint[jointID].dynamicRotation.m);
-                 //matrix4x42Quaternion(quaternion,qXqYqZqW,corrected.m);
-                 //normalizeQuaternions(&quaternion[0],&quaternion[1],&quaternion[2],&quaternion[3]);
-        
-                 //Method 3 - Not Working
-                 tf2::Quaternion rX(tf2::Vector3(1,0,0),degreesToRadians(-xRotation));
-                 tf2::Quaternion rY(tf2::Vector3(0,1,0),degreesToRadians(-yRotation));
-                 tf2::Quaternion rZ(tf2::Vector3(0,0,-1),degreesToRadians(-zRotation)); 
-                 tf2::Quaternion qXYZW = rZ * rX * rY;
-        
+         
                  quaternion[0]=qXYZW.x();
                  quaternion[1]=qXYZW.y();
                  quaternion[2]=qXYZW.z();
                  quaternion[3]=qXYZW.w();
-        
         
                  postPoseTransform(
                                    parentName,
@@ -619,6 +592,9 @@ int main(int argc, char **argv)
         private_node_handle.param("fromRGBTopicInfo", fromRGBTopicInfo, std::string(camRGBInfo));
         private_node_handle.param("name", name, std::string("mocapnet"));
         private_node_handle.param("rate",rate);
+        private_node_handle.param("useSimple3DPointTF",useSimpleBroadcaster);
+        
+        
         private_node_handle.param("tfRoot",tfRootName, std::string(DEFAULT_TF_ROOT));
         snprintf(tfRoot,510,"%s",tfRootName.c_str());
         fprintf(stderr,"TFRoot Name = %s ",tfRoot);
@@ -687,6 +663,15 @@ int main(int argc, char **argv)
               exit(0);
               return 0;
         }
+    
+    //MocapNET things that get their options through ROS parameters
+    int value;
+    private_node_handle.param("MocapNETMode",value,5);                                               options.mocapNETMode=(unsigned int) value; 
+    private_node_handle.param("useHierarchicalCoordinateDescent",value,1);                           options.useInverseKinematics=(unsigned int) value; 
+    private_node_handle.param("hierarchicalCoordinateDescentLearningRate",options.learningRate);
+    private_node_handle.param("hierarchicalCoordinateDescentSpring",options.spring);
+    private_node_handle.param("hierarchicalCoordinateDescentIterations",value,5);                    options.iterations=(unsigned int) value;
+    private_node_handle.param("hierarchicalCoordinateDescentEpochs",value,30);                       options.epochs=(unsigned int) value;  
     
     
     ROS_INFO("Initializing 2D joint estimator");
