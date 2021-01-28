@@ -51,7 +51,7 @@ rosservice call /mocapnet_rosnode/setCameraYaw "value: 0.0"
 
 You can download [this sample rosbag](https://github.com/FORTH-ModelBasedTracker/mocapnet_rosnode/raw/main/doc/sample.bag) to take a look on the TF tree..
 
-By default the 2D joint estimator used is "forth" and is best suited for realtime execution and decent average accuracy. If you have a beefy graphics card you can change the  "joint2DEstimator" parameter to "vnect" or "openpose" for higher accuracy at slower speeds.
+By default the 2D joint estimator used is "forth" and is best suited for realtime execution and decent 2D pose estimation accuracy. If you have a beefy GPU you can change the ["joint2DEstimator" launch parameter](https://github.com/FORTH-ModelBasedTracker/mocapnet_rosnode/blob/main/launch/mocapnet_rosnode.launch#L18) to "vnect" or "openpose" for higher accuracy at slower speeds.
 
 Please note that camera movement is "encoded" as skeleton movement so usage of a static camera should be ok, however if using a moving camera you should [disable the publishCameraTF ROS parameter](https://github.com/FORTH-ModelBasedTracker/mocapnet_rosnode/blob/main/launch/mocapnet_rosnode.launch#L10) and publish your own "mocapnetCamera" tf2:transform.
 
