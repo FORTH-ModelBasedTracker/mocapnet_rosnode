@@ -83,7 +83,7 @@ int useSimpleBroadcaster=0;
     
 //Configuration
 char tfRoot[512]={DEFAULT_TF_ROOT}; //This is the string of the root node on the TF tree
-
+float tfRootXRotationOffset=0.0,tfRootYRotationOffset=0.0,tfRootZRotationOffset=0.0;
 unsigned int startTime=0, currentTime=0;
 
 
@@ -425,8 +425,7 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
     //Take care of drawing stuff as visual output
     cv::Mat bgrMat,rgbMat(height,width,CV_8UC3,rgbTmp.data,3*width);
     cv::cvtColor(rgbMat,bgrMat, cv::COLOR_RGB2BGR);// opencv expects the image in BGR format
-    //After we have our bgr Frame ready and we added the FPS text , lets show it!
-    cv::imshow("MocapNET - RGB input",bgrMat);
+    //cv::imshow("MocapNET - RGB input",bgrMat);
     
     //All MocapNET stuff in one call.. :P
     mocapNETProcessImage(bgrMat);
@@ -468,8 +467,6 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
         }  
     } else
     {
-       fprintf(stderr,"Under construction \n");
-       
        if (bvhFrame.size()==bvhMotion.numberOfValuesPerFrame)
        {
         float * motionBuffer= mallocVectorR(bvhFrame);
@@ -523,9 +520,9 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
                    x=bvhFrame[0]/100;
                    y=bvhFrame[1]/100;
                    z=bvhFrame[2]/100;
-                   zRotation = bvhFrame[3 + (jointID*3) + 0];
-                   yRotation = bvhFrame[3 + (jointID*3) + 1]; 
-                   xRotation = bvhFrame[3 + (jointID*3) + 2];
+                   zRotation = bvhFrame[3]+tfRootZRotationOffset;
+                   yRotation = bvhFrame[4]+tfRootYRotationOffset; 
+                   xRotation = bvhFrame[5]+tfRootXRotationOffset;
                    rX = tf2::Quaternion(tf2::Vector3(-1,0,0),degreesToRadians(-xRotation));
                    rY = tf2::Quaternion(tf2::Vector3(0,-1,0),degreesToRadians(-yRotation));
                    rZ = tf2::Quaternion(tf2::Vector3(0,0,-1),degreesToRadians(-zRotation)); 
@@ -593,6 +590,9 @@ int main(int argc, char **argv)
         private_node_handle.param("name", name, std::string("mocapnet"));
         private_node_handle.param("rate",rate);
         private_node_handle.param("useSimple3DPointTF",useSimpleBroadcaster);
+        private_node_handle.param("tfRootXRotationOffset",tfRootXRotationOffset);
+        private_node_handle.param("tfRootYRotationOffset",tfRootYRotationOffset);
+        private_node_handle.param("tfRootZRotationOffset",tfRootZRotationOffset);
         
         
         private_node_handle.param("tfRoot",tfRootName, std::string(DEFAULT_TF_ROOT));
@@ -665,7 +665,12 @@ int main(int argc, char **argv)
         }
     
     //MocapNET things that get their options through ROS parameters
-    int value;
+    int value; 
+    //Performance options
+    private_node_handle.param("useCPUOnlyForMocapNET",value,1);                                      options.useCPUOnlyForMocapNET=(unsigned int) value; 
+    private_node_handle.param("useCPUOnlyFor2DEstimator",value,0);                                   options.useCPUOnlyFor2DEstimator=(unsigned int) value; 
+    private_node_handle.param("multithreaded",value,0);                                              options.doMultiThreadedIK=(unsigned int) value; 
+    //MocapNET options
     private_node_handle.param("MocapNETMode",value,5);                                               options.mocapNETMode=(unsigned int) value; 
     private_node_handle.param("useHierarchicalCoordinateDescent",value,1);                           options.useInverseKinematics=(unsigned int) value; 
     private_node_handle.param("hierarchicalCoordinateDescentLearningRate",options.learningRate);

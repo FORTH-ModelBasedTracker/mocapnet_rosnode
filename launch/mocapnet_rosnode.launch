@@ -5,7 +5,13 @@
       <param name="fromRGBTopic" value="/camera/rgb/image_rect_color" /> 
       <param name="fromRGBTopicInfo" value="/camera/rgb/camera_info" />
       <param name="tfRoot" value="map" /> 
+      <param name="tfRootXRotationOffset" value="0.0" /> 
+      <param name="tfRootYRotationOffset" value="0.0" /> 
+      <param name="tfRootZRotationOffset" value="0.0" /> 
       <param name="useSimple3DPointTF" value="0" /> 
+      <param name="useCPUOnlyForMocapNET" value="1" /> 
+      <param name="useCPUOnlyFor2DEstimator" value="0" /> 
+      <param name="multithreaded" value="0" /> 
       <param name="useHierarchicalCoordinateDescent" value="1" /> 
       <param name="hierarchicalCoordinateDescentLearningRate" value="0.01" /> 
       <param name="hierarchicalCoordinateDescentSpring" value="20.0" /> 
