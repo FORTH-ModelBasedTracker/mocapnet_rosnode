@@ -3,6 +3,9 @@
 A ROS node for the [MocapNET 3D Pose Estimator](https://github.com/FORTH-ModelBasedTracker/MocapNET) 
 
 
+![mocapnet_rosnode screenshot with rviz](https://raw.githubusercontent.com/FORTH-ModelBasedTracker/mocapnet_rosnode/main/doc/screenshot.jpg)
+
+
 Please only use this issues page for issues with the ROS wrapper, the main development repository of MocapNET is [here](https://github.com/FORTH-ModelBasedTracker/MocapNET) 
 
 
@@ -33,7 +36,20 @@ Feel free to make your own ros launcher by using the default [mocapnet_rosnode.l
 
 The default settings are /camera/rgb/image_rect_color for the RGB image topic, /camera/rgb/camera_info for the camera calibration and map as the TF root. 
 
-![mocapnet_rosnode screenshot with rviz](https://raw.githubusercontent.com/FORTH-ModelBasedTracker/mocapnet_rosnode/main/doc/screenshot.jpg)
+You can control the camera position and roll pitch yaw to match your TF tree.
+The default settings are the following :
 
+```
+rosservice call /mocapnet_rosnode/setCameraXPosition "value: 0.0" 
+rosservice call /mocapnet_rosnode/setCameraYPosition "value: 0.0" 
+rosservice call /mocapnet_rosnode/setCameraZPosition "value: 0.0" 
+rosservice call /mocapnet_rosnode/setCameraRoll "value: 90.0" 
+rosservice call /mocapnet_rosnode/setCameraPitch "value: 0.0" 
+rosservice call /mocapnet_rosnode/setCameraYaw "value: 0.0" 
+
+```
+
+You can download [this sample rosbag]() to take a look on the TF tree..
+Please note that camera movement is "encoded" as skeleton movement so  
 
 Good luck!
