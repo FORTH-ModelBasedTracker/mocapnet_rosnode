@@ -656,6 +656,7 @@ int main(int argc, char **argv)
         nhPtr = &nh;
  
         float rate = 30;
+        std::string joint2DEstimatorName;
         std::string name;
         std::string fromRGBTopic;
         std::string fromRGBTopicInfo;
@@ -665,6 +666,7 @@ int main(int argc, char **argv)
         private_node_handle.param("fromRGBTopic", fromRGBTopic, std::string(camRGBRaw));
         private_node_handle.param("fromRGBTopicInfo", fromRGBTopicInfo, std::string(camRGBInfo));
         private_node_handle.param("name", name, std::string("mocapnet"));
+        private_node_handle.param("joint2DEstimator", joint2DEstimatorName, std::string("forth"));
         private_node_handle.param("rate",rate);
         private_node_handle.param("publishCameraTF",publishCameraTF,1); 
         private_node_handle.param("useSimple3DPointTF",useSimpleBroadcaster,1);
@@ -674,7 +676,6 @@ int main(int argc, char **argv)
         private_node_handle.param("cameraRoll",cameraRoll);
         private_node_handle.param("cameraPitch",cameraPitch);
         private_node_handle.param("cameraYaw",cameraYaw);
-        
         
         private_node_handle.param("tfRoot",tfRootName, std::string(DEFAULT_TF_ROOT));
         snprintf(tfRoot,510,"%s",tfRootName.c_str());
@@ -765,6 +766,9 @@ int main(int argc, char **argv)
     private_node_handle.param("hierarchicalCoordinateDescentIterations",value,5);                    options.iterations=(unsigned int) value;
     private_node_handle.param("hierarchicalCoordinateDescentEpochs",value,30);                       options.epochs=(unsigned int) value;  
     
+    if (joint2DEstimatorName.compare("forth")==0)    { options.jointEstimatorUsed=JOINT_2D_ESTIMATOR_FORTH; }
+    if (joint2DEstimatorName.compare("vnect")==0)    { options.jointEstimatorUsed=JOINT_2D_ESTIMATOR_VNECT; }
+    if (joint2DEstimatorName.compare("openpose")==0) { options.jointEstimatorUsed=JOINT_2D_ESTIMATOR_OPENPOSE; } 
     
     ROS_INFO("Initializing 2D joint estimator");
     if (loadJointEstimator2D(
