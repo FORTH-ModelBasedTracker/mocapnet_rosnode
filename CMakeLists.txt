@@ -42,7 +42,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(DIRECTORY msg FILES a.msg )
 
 #Services -----------------------------------
-add_service_files(DIRECTORY srv FILES SetScale.srv )
+add_service_files(DIRECTORY srv FILES singleFloat.srv )
 
 ## Generate added messages and services
 generate_messages(DEPENDENCIES std_msgs mocapnet)

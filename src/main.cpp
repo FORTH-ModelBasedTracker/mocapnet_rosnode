@@ -14,6 +14,8 @@
 #include <geometry_msgs/TransformStamped.h>
 //#include <tf/transform_broadcaster.h>
 #include <std_srvs/Empty.h>
+#include "mocapnet_rosnode/singleFloat.h"
+
 
 #include <math.h>
 #include <iostream>
@@ -83,7 +85,10 @@ int useSimpleBroadcaster=0;
     
 //Configuration
 char tfRoot[512]={DEFAULT_TF_ROOT}; //This is the string of the root node on the TF tree
-float tfRootXRotationOffset=0.0,tfRootYRotationOffset=0.0,tfRootZRotationOffset=0.0;
+
+int publishCameraTF=1;
+float cameraXPosition=0.0,cameraYPosition=0.0,cameraZPosition=0.0;
+float cameraRoll=90.0, cameraPitch=0.0, cameraYaw=0.0;
 unsigned int startTime=0, currentTime=0;
 
 
@@ -103,7 +108,55 @@ message_filters::Subscriber<sensor_msgs::Image> *rgb_img_sub;
 message_filters::Subscriber<sensor_msgs::CameraInfo> *rgb_cam_info_sub;
 
 
+bool setCameraXPosition(mocapnet_rosnode::singleFloat::Request  &req,mocapnet_rosnode::singleFloat::Response &res)
+    {
+      cameraXPosition = req.value;
+      res.ok = 1;
+      ROS_INFO("Camera X Position set to %f",cameraXPosition); 
+      return true;
+   }
 
+bool setCameraYPosition(mocapnet_rosnode::singleFloat::Request  &req,mocapnet_rosnode::singleFloat::Response &res)
+    {
+      cameraYPosition = req.value;
+      res.ok = 1;
+      ROS_INFO("Camera Y Position set to %f",cameraYPosition); 
+      return true;
+   }
+
+bool setCameraZPosition(mocapnet_rosnode::singleFloat::Request  &req,mocapnet_rosnode::singleFloat::Response &res)
+    {
+      cameraZPosition = req.value;
+      res.ok = 1;
+      ROS_INFO("Camera Z Position set to %f",cameraZPosition); 
+      return true;
+   }
+
+bool setCameraRoll(mocapnet_rosnode::singleFloat::Request  &req,mocapnet_rosnode::singleFloat::Response &res)
+    {
+      cameraRoll = req.value;
+      res.ok = 1;
+      ROS_INFO("TF Roll Offset set to %f",cameraRoll); 
+      return true;
+   }
+
+bool setCameraPitch(mocapnet_rosnode::singleFloat::Request  &req,mocapnet_rosnode::singleFloat::Response &res)
+    {
+      cameraPitch = req.value;
+      res.ok = 1;
+      ROS_INFO("TF Pitch Offset set to %f",cameraPitch); 
+      return true;
+   }
+   
+bool setCameraYaw(mocapnet_rosnode::singleFloat::Request  &req,mocapnet_rosnode::singleFloat::Response &res)
+    {
+      cameraYaw = req.value;
+      res.ok = 1;
+      ROS_INFO("TF Yaw Offset set to %f",cameraYaw); 
+      return true;
+   }
+   
+   
 bool visualizeAngles(std_srvs::Empty::Request& request,std_srvs::Empty::Response& response)
 {
     ROS_INFO("Visualize Angles called");
@@ -447,6 +500,30 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
     #endif
     
     
+    
+     if (publishCameraTF)
+               {
+                 tf2::Quaternion cameraQuaternion;
+                 //Everything is relative to mocapnetCamera and we are in charge of publishing it..
+                 cameraQuaternion.setRPY(cameraRoll,cameraPitch,cameraYaw);
+                 
+                 postPoseTransform(
+                                   tfRoot,
+                                   "mocapnetCamera",
+                                   cameraXPosition,
+                                   cameraYPosition,
+                                   cameraZPosition,
+                                   cameraQuaternion.x(),//qX
+                                   cameraQuaternion.y(),//qW
+                                   cameraQuaternion.z(),//qZ
+                                   cameraQuaternion.w() //qW
+                                  );
+                //------------------------------------ 
+              }
+    
+    
+    
+    
     if (useSimpleBroadcaster)
     {
        //Simple 3D point broadcaster where every frame is in reference to TFRoot and there are no rotations
@@ -457,7 +534,7 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
          snprintf(pubName,512,"%s",getBVHJointName(pointID)); 
          
          postPoseTransform(
-                           tfRoot,
+                           "mocapnetCamera",
                            pubName,
                            points3D[pointID*3+0]/100,
                            points3D[pointID*3+1]/100,
@@ -489,7 +566,7 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
                 float x,y,z,xRotation,yRotation,zRotation;
                 char parentName[512];  
                 char jointName[512];  
-                 tf2::Quaternion rX,rY,rZ,qXYZW;
+                tf2::Quaternion rX,rY,rZ,qXYZW;
        
                 //getBVHNumberOfValuesPerFrame
                 for (BVHJointID jointID=0; jointID<=bvhMotion.jointHierarchySize; jointID++)
@@ -515,14 +592,14 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
                   } else
                   {
                     //Special handling for hip its ZYX
-                   snprintf(parentName,512,"map"); 
+                   snprintf(parentName,512,"mocapnetCamera"); 
                    snprintf(jointName,512,"%s",bvhMotion.jointHierarchy[jointID].jointName); 
                    x=bvhFrame[0]/100;
                    y=bvhFrame[1]/100;
                    z=bvhFrame[2]/100;
-                   zRotation = bvhFrame[3]+tfRootZRotationOffset;
-                   yRotation = bvhFrame[4]+tfRootYRotationOffset; 
-                   xRotation = bvhFrame[5]+tfRootXRotationOffset;
+                   zRotation = bvhFrame[3];
+                   yRotation = bvhFrame[4]; 
+                   xRotation = bvhFrame[5];
                    rX = tf2::Quaternion(tf2::Vector3(-1,0,0),degreesToRadians(-xRotation));
                    rY = tf2::Quaternion(tf2::Vector3(0,-1,0),degreesToRadians(-yRotation));
                    rZ = tf2::Quaternion(tf2::Vector3(0,0,-1),degreesToRadians(-zRotation)); 
@@ -589,10 +666,14 @@ int main(int argc, char **argv)
         private_node_handle.param("fromRGBTopicInfo", fromRGBTopicInfo, std::string(camRGBInfo));
         private_node_handle.param("name", name, std::string("mocapnet"));
         private_node_handle.param("rate",rate);
-        private_node_handle.param("useSimple3DPointTF",useSimpleBroadcaster);
-        private_node_handle.param("tfRootXRotationOffset",tfRootXRotationOffset);
-        private_node_handle.param("tfRootYRotationOffset",tfRootYRotationOffset);
-        private_node_handle.param("tfRootZRotationOffset",tfRootZRotationOffset);
+        private_node_handle.param("publishCameraTF",publishCameraTF,1); 
+        private_node_handle.param("useSimple3DPointTF",useSimpleBroadcaster,1);
+        private_node_handle.param("cameraXPosition",cameraXPosition);
+        private_node_handle.param("cameraYPosition",cameraYPosition);
+        private_node_handle.param("cameraZPosition",cameraZPosition);
+        private_node_handle.param("cameraRoll",cameraRoll);
+        private_node_handle.param("cameraPitch",cameraPitch);
+        private_node_handle.param("cameraYaw",cameraYaw);
         
         
         private_node_handle.param("tfRoot",tfRootName, std::string(DEFAULT_TF_ROOT));
@@ -605,6 +686,12 @@ int main(int argc, char **argv)
         message_filters::Synchronizer<RgbSyncPolicy> *sync = new message_filters::Synchronizer<RgbSyncPolicy>(RgbSyncPolicy(5), *rgb_img_sub,*rgb_cam_info_sub);
         //rosrun rqt_graph rqt_graph to test out what is going on
  
+        ros::ServiceServer setCameraRollService      = nh.advertiseService(name + "/setCameraRoll", setCameraRoll);
+        ros::ServiceServer setCameraPitchService     = nh.advertiseService(name + "/setCameraPitch", setCameraPitch);
+        ros::ServiceServer setCameraYawService       = nh.advertiseService(name + "/setCameraYaw", setCameraYaw);
+        ros::ServiceServer setCameraXPositionService = nh.advertiseService(name + "/setCameraXPosition", setCameraXPosition);
+        ros::ServiceServer setCameraYPositionService = nh.advertiseService(name + "/setCameraYPosition", setCameraYPosition);
+        ros::ServiceServer setCameraZPositionService = nh.advertiseService(name + "/setCameraZPosition", setCameraZPosition);
         ros::ServiceServer visualizeAnglesService    = nh.advertiseService(name + "/visualize_angles",&visualizeAngles);
         ros::ServiceServer visualizeMainService      = nh.advertiseService(name + "/visualize_main",&visualizeMain);
         ros::ServiceServer visualizeOverlayService   = nh.advertiseService(name + "/visualize_overlay",&visualizeOverlay);
