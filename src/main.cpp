@@ -9,10 +9,13 @@
 #include <sensor_msgs/CameraInfo.h>
 
 
-#include <tf/transform_broadcaster.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <geometry_msgs/TransformStamped.h>
+//#include <tf/transform_broadcaster.h>
 #include <std_srvs/Empty.h>
 
-
+#include <math.h>
 #include <iostream>
 #include <unistd.h>
 #include <ros/ros.h>
@@ -43,9 +46,17 @@
 //-----------------------------------------------------------------
 #include "../dependencies/MocapNET/src/MocapNET2/MocapNETLib2/tools.hpp"
 
+//BVH Specific stuff..
+#include "../dependencies/MocapNET/dependencies/RGBDAcquisition/opengl_acquisition_shared_library/opengl_depth_and_color_renderer/src/Library/MotionCaptureLoader/bvh_loader.h"
+#include "../dependencies/MocapNET/dependencies/RGBDAcquisition/opengl_acquisition_shared_library/opengl_depth_and_color_renderer/src/Library/MotionCaptureLoader/calculate/bvh_project.h"
+#include "../dependencies/MocapNET/dependencies/RGBDAcquisition/opengl_acquisition_shared_library/opengl_depth_and_color_renderer/src/Library/MotionCaptureLoader/calculate/bvh_transform.h"
+
 struct MocapNET2Options options= {0};
 struct MocapNET2 mnet= {0};
 struct JointEstimator2D jointEstimator;
+
+struct BVH_MotionCapture bvhMotion = {0};
+struct BVH_Transform bvhTransform  = {0};
 
 unsigned int frameID=0;
   
@@ -90,9 +101,24 @@ message_filters::Subscriber<sensor_msgs::CameraInfo> *rgb_cam_info_sub;
 
 
 
-bool visualizeOn(std_srvs::Empty::Request& request,std_srvs::Empty::Response& response)
+bool visualizeAngles(std_srvs::Empty::Request& request,std_srvs::Empty::Response& response)
 {
-    ROS_INFO("Visualize On called");
+    ROS_INFO("Visualize Angles called");
+    options.visualizationType=1;
+    return true;
+}
+
+bool visualizeMain(std_srvs::Empty::Request& request,std_srvs::Empty::Response& response)
+{
+    ROS_INFO("Visualize Main called");
+    options.visualizationType=0;
+    return true;
+}
+
+bool visualizeOverlay(std_srvs::Empty::Request& request,std_srvs::Empty::Response& response)
+{
+    ROS_INFO("Visualize Overlay called");
+    options.visualizationType=3;
     return true;
 }
 
@@ -109,14 +135,34 @@ bool terminate(std_srvs::Empty::Request& request,std_srvs::Empty::Response& resp
     return true;
 }
 
-int postPoseTransform(const char * parentName, const char * jointName, float x, float y, float z, float roll, float pitch, float yaw)
+int postPoseTransform(const char * parentName, const char * jointName, float x, float y, float z, float qX, float qY, float qZ,float qW)
 {
-    static tf::TransformBroadcaster br;
-    tf::Transform transform;
-    transform.setOrigin(tf::Vector3(x, y, z));
-    transform.setRotation(tf::createQuaternionFromRPY(roll,pitch,yaw) );  // if we just have xyz we dont have a rotation
-
-    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), parentName , jointName));
+    //TF1 code
+    //static tf::TransformBroadcaster br;
+    //tf::Transform transform;
+    //transform.setOrigin(tf::Vector3(x, y, z));
+    //transform.setRotation(tf::createQuaternionFromRPY(roll,pitch,yaw) );  // if we just have xyz we dont have a rotation
+    //transform.setRotation(tf::Quaternion(qX,qY,qZ,qW));  // if we just have xyz we dont have a rotation
+    //br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), parentName , jointName));
+    
+    static tf2_ros::TransformBroadcaster br;
+    geometry_msgs::TransformStamped transformStamped;
+    transformStamped.header.stamp = ros::Time::now();
+    transformStamped.header.frame_id = parentName;
+    transformStamped.child_frame_id = jointName;
+    transformStamped.transform.translation.x = x;
+    transformStamped.transform.translation.y = y;
+    transformStamped.transform.translation.z = z;
+    
+    tf2::Quaternion q;
+    q.setRPY(0, 0,0);
+    
+    transformStamped.transform.rotation.x = qX;//q.x();
+    transformStamped.transform.rotation.y = qY;//q.y();
+    transformStamped.transform.rotation.z = qZ;//q.z();
+    transformStamped.transform.rotation.w = qW;//q.w();
+    
+    br.sendTransform(transformStamped);
     return 1;
 }
 
@@ -155,8 +201,8 @@ void mocapNETProcessImage(cv::Mat frame)
                                             &jointEstimator,
                                             frameCentered,
                                             &skeleton2DEstimations
+                                          )
                                         )
-                                    )
                                         {
                                             fprintf(stderr,"Failed to crop input video\n");
                                         }
@@ -310,9 +356,62 @@ void mocapNETProcessImage(cv::Mat frame)
 
 
 
+void euler2Quaternions(float * quaternions,float * euler)
+{
+    //This conversion follows the rule euler X Y Z  to quaternions W X Y Z
+    //Our input is degrees so we convert it to radians for the sin/cos functions
+    float eX = (float) (euler[0] * M_PI) / 180;
+    float eY = (float) (euler[1] * M_PI) / 180;
+    float eZ = (float) (euler[2] * M_PI) / 180;
+
+    //fprintf(stderr,"eX %f eY %f eZ %f\n",eX,eY,eZ);
+
+    //http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+    //eX Roll  φ - rotation about the X-axis
+    //eY Pitch θ - rotation about the Y-axis
+    //eZ Yaw   ψ - rotation about the Z-axis
+
+    float cosX2 = cos((float) eX/2); //cos(φ/2);
+    float sinX2 = sin((float) eX/2); //sin(φ/2);
+    float cosY2 = cos((float) eY/2); //cos(θ/2);
+    float sinY2 = sin((float) eY/2); //sin(θ/2);
+    float cosZ2 = cos((float) eZ/2); //cos(ψ/2);
+    float sinZ2 = sin((float) eZ/2); //sin(ψ/2);
+
+    float qX = (sinX2 * cosY2 * cosZ2) - (cosX2 * sinY2 * sinZ2);
+    float qY = (cosX2 * sinY2 * cosZ2) + (sinX2 * cosY2 * sinZ2);
+    float qZ = (cosX2 * cosY2 * sinZ2) - (sinX2 * sinY2 * cosZ2);
+    float qW = (cosX2 * cosY2 * cosZ2) + (sinX2 * sinY2 * sinZ2);
+    
+    quaternions[0] = qX;
+    quaternions[1] = qY;
+    quaternions[2] = qZ;
+    quaternions[3] = qW;
+}
 
 
 
+
+
+float * mallocVectorR(std::vector<float> bvhFrame)
+{
+   if (bvhFrame.size()==0)
+   {
+       fprintf(stderr,"mallocVector given an empty vector..\n");
+       //Empty bvh frame means no vector 
+       return 0;
+   }
+   
+    float * newVector = (float*) malloc(sizeof(float) * bvhFrame.size());
+    if (newVector!=0)
+        {
+            for (int i=0; i<bvhFrame.size(); i++)
+                {
+                    newVector[i]=(float) bvhFrame[i];
+                }
+        }
+    return newVector;
+}
 
 
 //RGB Callback is called every time we get a new frame, it is synchronized to the main thread
@@ -367,13 +466,14 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
     
     mocapNETProcessImage(bgrMat);
     
-    
-    
+    //http://wiki.ros.org/tf/Overview/Data%20Types
+    //http://wiki.ros.org/tf/Overview/Transformations#tf2.2FTerminology.Frames_and_Points
+    std::vector<float> bvhFrame = mnet.currentSolution; 
     
     if (useSimpleBroadcaster)
     {
        //Simple 3D point broadcaster where every frame is in reference to TFRoot and there are no rotations
-       std::vector<float> points3D = convertBVHFrameToFlat3DPoints(mnet.currentSolution); 
+       std::vector<float> points3D = convertBVHFrameToFlat3DPoints(bvhFrame); 
        for (unsigned int pointID=0; pointID<points3D.size()/3; pointID++)
         {
          char pubName[512];
@@ -385,56 +485,83 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
                            points3D[pointID*3+0]/100,
                            points3D[pointID*3+1]/100,
                            points3D[pointID*3+2]/100,
-                           0.0,0.0,0.0
+                           0.0,0.0,0.0,1.0
                           ); 
         }  
     } else
     {
        fprintf(stderr,"Under construction \n");
-       std::vector<float> points3D = convertBVHFrameToFlat3DPoints(mnet.currentSolution); 
-       for (unsigned int pointID=0; pointID<points3D.size()/3; pointID++)
+       bvh_cleanTransform(&bvhMotion,&bvhTransform);
+       float * motionBuffer= mallocVectorR(bvhFrame);
+       
+       if (motionBuffer!=0)
+       {
+           
+                    if (
+                           bvh_loadTransformForMotionBuffer(
+                                                            &bvhMotion,
+                                                            motionBuffer,
+                                                            &bvhTransform,
+                                                            0//Dont need extra information
+                                                           )
+                        )
+                        {
+                    
+       float euler[3];
+       float quaternion[4];
+       float x,y,z,xRotation,yRotation,zRotation;
+       char parentName[512];  
+       char pubName[512];  
+       
+       //getBVHNumberOfValuesPerFrame
+       for (unsigned int jointID=0; jointID<=getBVHNumberOfJoints(); jointID++)
         {
-         float x,y,z; 
-         float roll,pitch,yaw;
-         char parentName[512];  
-         char pubName[512];  
-         if (pointID!=0)
+         if (jointID!=0)
          {
-          getBVHJointOffset(pointID,&x,&y,&z);
-          x=(mnet.currentSolution[0]+x)/100;
-          y=(mnet.currentSolution[1]+y)/100;
-          z=(mnet.currentSolution[2]+z)/100;
-          snprintf(parentName,512,"%s",getBVHJointName(getBVHParentJoint(pointID))); 
-          snprintf(pubName,512,"%s",getBVHJointName(pointID)); 
-          roll = -1 *mnet.currentSolution[3 + pointID*3 + 2];
-          pitch= -1 *mnet.currentSolution[3 + pointID*3 + 1]; 
-          yaw  = -1 *mnet.currentSolution[3 + pointID*3 + 0];
+          unsigned int parentPointID=getBVHParentJoint(jointID);
+          
+          getBVHJointOffset(jointID,&x,&y,&z);
+          x=x/100;
+          y=y/100;
+          z=z/100;
+          snprintf(parentName,512,"%s",getBVHJointName(parentPointID)); 
+          snprintf(pubName,512,"%s",getBVHJointName(jointID)); 
+          zRotation = bvhFrame[3 + (jointID*3) + 0];
+          xRotation = bvhFrame[3 + (jointID*3) + 1]; 
+          yRotation = bvhFrame[3 + (jointID*3) + 2]; 
          } else
          {
+           //Special handling for hip
           snprintf(parentName,512,"map"); 
-          snprintf(pubName,512,"%s",MocapNETOutputJointNames[pointID]); 
-          x=mnet.currentSolution[0]/100;
-          y=mnet.currentSolution[1]/100;
-          z=mnet.currentSolution[2]/100;
-          roll = -1 * mnet.currentSolution[3 + pointID*3 + 0];
-          pitch= -1 * mnet.currentSolution[3 + pointID*3 + 1]; 
-          yaw  = -1 * mnet.currentSolution[3 + pointID*3 + 2];
+          snprintf(pubName,512,"%s",MocapNETOutputJointNames[jointID]); 
+          x=bvhFrame[0]/100;
+          y=bvhFrame[1]/100;
+          z=bvhFrame[2]/100;
+          zRotation = bvhFrame[3 + (jointID*3) + 0];
+          yRotation = bvhFrame[3 + (jointID*3) + 1]; 
+          xRotation = bvhFrame[3 + (jointID*3) + 2];
          }
         
-        
-        
+        euler[2]=-1*xRotation;
+        euler[1]=-1*yRotation;
+        euler[0]=-1*zRotation; 
+        euler2Quaternions(quaternion,euler);
         postPoseTransform(
                           parentName,
                           pubName,
                           x,//points3D[pointID*3+0]/100,
                           y,//points3D[pointID*3+1]/100,
                           z,//points3D[pointID*3+2]/100
-                          roll,
-                          pitch,
-                          yaw
+                          quaternion[0],
+                          quaternion[1],
+                          quaternion[2],
+                          quaternion[3]
                          );
         
         }  
+                        }
+        free(motionBuffer);
+       }
     }
     
     cv::waitKey(1);
@@ -446,6 +573,9 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
   
 int main(int argc, char **argv)
 {
+    //roslaunch rgbd_acquisition rgb_acquisition.launch deviceID:=sven.mp4-data moduleID:=TEMPLATE width:=1920 height:=1080 framerate:=5
+
+    
     ROS_INFO("Initializing MocapNET ROS Wrapper");
     try
     {
@@ -476,11 +606,12 @@ int main(int argc, char **argv)
         rgb_cam_info_sub = new message_filters::Subscriber<sensor_msgs::CameraInfo>(nh,fromRGBTopicInfo,1);
         message_filters::Synchronizer<RgbSyncPolicy> *sync = new message_filters::Synchronizer<RgbSyncPolicy>(RgbSyncPolicy(5), *rgb_img_sub,*rgb_cam_info_sub);
         //rosrun rqt_graph rqt_graph to test out what is going on
-
-
-        ros::ServiceServer visualizeOnService      = nh.advertiseService(name + "/visualize_on",&visualizeOn);
-        ros::ServiceServer visualizeOffService     = nh.advertiseService(name + "/visualize_off", &visualizeOff);
-        ros::ServiceServer terminateService        = nh.advertiseService(name + "/terminate", terminate);
+ 
+        ros::ServiceServer visualizeAnglesService    = nh.advertiseService(name + "/visualize_angles",&visualizeAngles);
+        ros::ServiceServer visualizeMainService      = nh.advertiseService(name + "/visualize_main",&visualizeMain);
+        ros::ServiceServer visualizeOverlayService   = nh.advertiseService(name + "/visualize_overlay",&visualizeOverlay);
+        ros::ServiceServer visualizeOffService       = nh.advertiseService(name + "/visualize_off", &visualizeOff);
+        ros::ServiceServer terminateService          = nh.advertiseService(name + "/terminate", terminate);
 
         //registerResultCallback((void*) sampleResultingSynergies);
         //registerUpdateLoopCallback((void *) loopEvent);
@@ -526,6 +657,15 @@ int main(int argc, char **argv)
                  }
             }
             //--------------------------------------------------------------------------
+    
+    
+    if (!bvh_loadBVH("dataset/headerWithHeadAndOneMotion.bvh",&bvhMotion,1.0) ) // This is the new armature that includes the head
+        {
+              ROS_ERROR("Failed to initialize MocapNET reading master BVH file.."); 
+              exit(0);
+              return 0;
+        }
+    
     
     ROS_INFO("Initializing 2D joint estimator");
     if (loadJointEstimator2D(
