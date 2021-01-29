@@ -67,7 +67,7 @@ data: [-9.512088775634766, -4.7546868324279785, -288.34246826171875, 27.72639274
 ```
 
 
-By default the 2D joint estimator used is "forth" and is best suited for realtime execution and decent 2D pose estimation accuracy. If you have a beefy GPU you can change the ["joint2DEstimator" launch parameter](https://github.com/FORTH-ModelBasedTracker/mocapnet_rosnode/blob/main/launch/mocapnet_rosnode.launch#L18) to "vnect" or "openpose" for higher accuracy at slower speeds.
+By default the 2D joint estimator used is `forth` and is best suited for realtime execution and decent 2D pose estimation accuracy. If you have a beefy GPU you can change the ["joint2DEstimator" launch parameter](https://github.com/FORTH-ModelBasedTracker/mocapnet_rosnode/blob/main/launch/mocapnet_rosnode.launch#L18) to `vnect` or `openpose` for higher accuracy at slower speeds.
 
 Please note that camera movement is "encoded" as skeleton movement so usage of a static camera should be ok, however if using a moving camera you should [disable the publishCameraTF ROS parameter](https://github.com/FORTH-ModelBasedTracker/mocapnet_rosnode/blob/main/launch/mocapnet_rosnode.launch#L10) and publish your own "mocapnetCamera" tf2:transform.
 
