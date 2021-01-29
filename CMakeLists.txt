@@ -45,12 +45,12 @@ find_package(catkin REQUIRED COMPONENTS
 add_service_files(DIRECTORY srv FILES singleFloat.srv )
 
 ## Generate added messages and services
-generate_messages(DEPENDENCIES std_msgs mocapnet)
+generate_messages(DEPENDENCIES std_msgs mocapnet_rosnode)
 
 #This needs to be after generate messages
 catkin_package()
 
-include_directories( ${catkin_INCLUDEDIR} ${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDEDIR} )
+include_directories( ${catkin_INCLUDEDIR} ${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDEDIR} "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/MocapNET/dependencies/libtensorflow/include")
 add_executable(mocapnet_rosnode  src/main.cpp)
 target_link_libraries(mocapnet_rosnode  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}  ${MOCAPNET_LIBRARIES} )
 
