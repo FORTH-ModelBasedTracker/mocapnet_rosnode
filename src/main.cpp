@@ -765,6 +765,7 @@ int main(int argc, char **argv)
               return 0;
         }
     
+    
     //MocapNET things that get their options through ROS parameters
     int value; 
     //Performance options
@@ -794,6 +795,23 @@ int main(int argc, char **argv)
             ROS_INFO("Initializing MocapNET");
             if ( loadMocapNET2(&mnet,"MocapNET ROS Node") )
                 {
+                   //Last check for inconsistencies..
+                   //Since the tfTargetBVHFilename can load a different BVH file than the internal model
+                   //We need to check that the two BVH armatures have joint parity..
+                   //A stricter test could also make sure joint names are the same, however someone can essencially alter the Frame names using this file
+                   //so we will only check for the number of joints..!
+                   if  (
+                          (bvhMotion.numberOfValuesPerFrame!=getBVHNumberOfValuesPerFrame()) ||
+                          (bvhMotion.jointHierarchySize!=getBVHNumberOfJoints())
+                       )
+                       {
+                         ROS_ERROR("Fatal error: tfTargetBVHFilename given doesn't have parity with internal MocapNET model.."); 
+                         ROS_ERROR("Consider switching the tfTargetBVHFilename back to dataset/headerWithHeadAndOneMotion.bvh"); 
+                         ROS_ERROR("or using it as your starting point for modifying it.."); 
+                         exit(0); 
+                       }
+    
+                    
                   sync->registerCallback(rgbCallback);
                   ROS_INFO("Registered ROS services, we should be able to process incoming messages now!");
                   
