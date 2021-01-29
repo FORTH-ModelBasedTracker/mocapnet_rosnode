@@ -666,8 +666,11 @@ int main(int argc, char **argv)
         std::string fromRGBTopic;
         std::string fromRGBTopicInfo;
         std::string tfRootName;
+        std::string tfTargetBVHFilename;
 
         ROS_INFO("Initializing Parameters..");
+        
+        private_node_handle.param("tfTargetBVHFilename", tfTargetBVHFilename, std::string("dataset/headerWithHeadAndOneMotion.bvh"));
         private_node_handle.param("fromRGBTopic", fromRGBTopic, std::string(camRGBRaw));
         private_node_handle.param("fromRGBTopicInfo", fromRGBTopicInfo, std::string(camRGBInfo));
         private_node_handle.param("name", name, std::string("mocapnet"));
@@ -755,7 +758,7 @@ int main(int argc, char **argv)
             //--------------------------------------------------------------------------
     
     
-    if (!bvh_loadBVH("dataset/headerWithHeadAndOneMotion.bvh",&bvhMotion,1.0) ) // This is the new armature that includes the head
+    if (!bvh_loadBVH(tfTargetBVHFilename.c_str(),&bvhMotion,1.0) ) // This is the new armature that includes the head
         {
               ROS_ERROR("Failed to initialize MocapNET reading master BVH file.."); 
               exit(0);

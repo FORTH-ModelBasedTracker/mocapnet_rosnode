@@ -6,6 +6,7 @@
       <param name="fromRGBTopicInfo" value="/D455/color/camera_info" />
 
       <param name="tfRoot" value="map" /> 
+      <param name="tfTargetBVHFilename" value="dataset/headerWithHeadAndOneMotion.bvh" />
       <param name="useSimple3DPointTF" value="0" /> 
       <param name="publishCameraTF" value="1" /> 
       <param name="cameraXPosition" value="0.0" /> 
@@ -14,7 +15,7 @@
       <param name="cameraRoll" value="0.0" /> 
       <param name="cameraPitch" value="0.0" /> 
       <param name="cameraYaw" value="0.0" /> 
-
+      
       <param name="joint2DEstimator" value="forth" />  
 
       <param name="useCPUOnlyForMocapNET" value="1" /> 

@@ -6,6 +6,7 @@
       <param name="fromRGBTopicInfo" value="/camera/rgb/camera_info" />
 
       <param name="tfRoot" value="map" /> 
+      <param name="tfTargetBVHFilename" value="dataset/headerWithHeadAndOneMotion.bvh" />
       <param name="useSimple3DPointTF" value="0" /> 
       <param name="publishCameraTF" value="1" /> 
       <param name="cameraXPosition" value="0.0" /> 
