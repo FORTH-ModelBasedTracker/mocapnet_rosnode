@@ -8,6 +8,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/CameraInfo.h>
 
+#include <std_msgs/Float32MultiArray.h>
 
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -636,15 +637,19 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
     cv::waitKey(1);
 
     return;
-
-
 }
   
+  
+  
+  
 int main(int argc, char **argv)
-{
-    //roslaunch rgbd_acquisition rgb_acquisition.launch deviceID:=sven.mp4-data moduleID:=TEMPLATE width:=1920 height:=1080 framerate:=5
+{    
+    //https://github.com/AmmarkoV/RGBDAcquisition/tree/master/3dparty/ROS/rgbd_acquisition
+    //==================================================================================================================================
+    //roslaunch rgbd_acquisition rgb_acquisition.launch deviceID:=sven.mp4-data moduleID:=TEMPLATE width:=1920 height:=1080 framerate:=1
+    //roslaunch mocapnet_rosnode mocapnet_rosnode.launch
+    //==================================================================================================================================
 
-    
     ROS_INFO("Initializing MocapNET ROS Wrapper");
     try
     {
@@ -702,7 +707,12 @@ int main(int argc, char **argv)
         //registerResultCallback((void*) sampleResultingSynergies);
         //registerUpdateLoopCallback((void *) loopEvent);
         //registerROSSpinner( (void *) frameSpinner );
-     
+        
+        unsigned int lastBroadcastedFrame= 0;
+        ros::Publisher pub = nh.advertise<std_msgs::Float32MultiArray>(name + "/bvhFrame", 1000);
+        std_msgs::Float32MultiArray bvhFrame;
+        bvhFrame.data.resize(MOCAPNET_OUTPUT_NUMBER);
+ 
         ROS_INFO("Done with ROS initialization!");
 
 
@@ -791,6 +801,21 @@ int main(int argc, char **argv)
                   while ( ( key!='q' ) && (ros::ok()) )
                   {
                       ros::spinOnce();
+                      
+                      if  ( 
+                            (MOCAPNET_OUTPUT_NUMBER==mnet.currentSolution.size()) &&
+                            (MOCAPNET_OUTPUT_NUMBER==bvhFrame.data.size()) && 
+                            (lastBroadcastedFrame != mnet.framesReceived)
+                          )
+                          {
+                             for (unsigned int i=0; i<MOCAPNET_OUTPUT_NUMBER; i++)
+                             {
+                                 bvhFrame.data[i] = mnet.currentSolution[i];
+                             }
+                             lastBroadcastedFrame = mnet.framesReceived;
+                             pub.publish(bvhFrame);
+                          }
+                      
                       if (i%1000==0)
                          {
                            fprintf(stderr,".");

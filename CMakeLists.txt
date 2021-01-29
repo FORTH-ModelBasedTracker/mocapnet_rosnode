@@ -39,7 +39,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf)
   
 #Messages -----------------------------------
-add_message_files(DIRECTORY msg FILES a.msg )
+#add_message_files(DIRECTORY msg FILES bvhSkeleton.msg )
 
 #Services -----------------------------------
 add_service_files(DIRECTORY srv FILES singleFloat.srv )
