@@ -648,6 +648,7 @@ int main(int argc, char **argv)
     //==================================================================================================================================
     //roslaunch rgbd_acquisition rgb_acquisition.launch deviceID:=sven.mp4-data moduleID:=TEMPLATE width:=1920 height:=1080 framerate:=1
     //roslaunch mocapnet_rosnode mocapnet_rosnode.launch
+    //rviz
     //==================================================================================================================================
 
     ROS_INFO("Initializing MocapNET ROS Wrapper");
@@ -749,7 +750,7 @@ int main(int argc, char **argv)
     //If the initialization didnt happen inside the previous call lets do it now
     if (!options.hasInit)
             { 
-               if (initializeBVHConverter(0,options.visWidth,options.visHeight))
+               if (initializeBVHConverter(0,options.visWidth,options.visHeight,0))
                  {
                    fprintf(stderr,"BVH code initalization successfull..\n");
                    options.hasInit=1;                   
