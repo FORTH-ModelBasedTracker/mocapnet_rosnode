@@ -38,7 +38,7 @@ The default settings are `/camera/rgb/image_rect_color` for the RGB image topic,
 
 You can download [this sample rosbag](https://github.com/FORTH-ModelBasedTracker/mocapnet_rosnode/raw/main/doc/sample.bag) to take a look on the TF tree..
 
-__Optional Step 4__, if you dont have your own ROS package to acquire RGB input you can use the bundled camera acquisition software you by performing the following instructions  :
+__Step 4 (Optional)__: If you don't have your own ROS package to acquire RGB input you can use the bundled camera acquisition software by executing the following instructions
 ```
 cd your/work/space/path/here
 source devel/setup.bash
