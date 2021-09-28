@@ -9,11 +9,11 @@ A ROS node for the [MocapNET 3D Pose Estimator](https://github.com/FORTH-ModelBa
 Please only use this issues page for issues with the ROS wrapper, the main development repository of MocapNET is [here](https://github.com/FORTH-ModelBasedTracker/MocapNET) 
 
 
-Step 0 : [Install ROS](http://wiki.ros.org/Installation/) 
+__Step 0__ : [Install ROS](http://wiki.ros.org/Installation/) 
 
-Step 1 : Create your Workspace ([info on how to do this here](http://wiki.ros.org/ROS/Tutorials/InstallingandConfiguringROSEnvironment))
+__Step 1__ : [Create your Workspace](http://wiki.ros.org/ROS/Tutorials/InstallingandConfiguringROSEnvironment)
 
-Step 2 :
+__Step 2__ :
 ```
 cd your/work/space/path/here
 cd src/
@@ -25,7 +25,7 @@ cmake ..
 make
 ```
 
-Step 3 : 
+__Step 3__ : 
 ```
 cd your/work/space/path/here
 source devel/setup.bash
@@ -38,7 +38,7 @@ The default settings are `/camera/rgb/image_rect_color` for the RGB image topic,
 
 You can download [this sample rosbag](https://github.com/FORTH-ModelBasedTracker/mocapnet_rosnode/raw/main/doc/sample.bag) to take a look on the TF tree..
 
-If you want to use the bundled camera acquisition software you can perform the following optional Step 4 :
+__Optional Step 4__, if you want to use the bundled camera acquisition software you can perform the following  :
 ```
 cd your/work/space/path/here
 source devel/setup.bash
