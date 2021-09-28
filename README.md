@@ -38,7 +38,7 @@ The default settings are `/camera/rgb/image_rect_color` for the RGB image topic,
 
 You can download [this sample rosbag](https://github.com/FORTH-ModelBasedTracker/mocapnet_rosnode/raw/main/doc/sample.bag) to take a look on the TF tree..
 
-__Optional Step 4__, if you want to use the bundled camera acquisition software you can perform the following  :
+__Optional Step 4__, if you dont have your own ROS package to acquire RGB input you can use the bundled camera acquisition software you by performing the following instructions  :
 ```
 cd your/work/space/path/here
 source devel/setup.bash
@@ -46,8 +46,7 @@ src/mocapnet_rosnode/scripts/createAcquisition.sh
 catkin_make
 ```
 
-This will create a link to the rgbd_acquisition ROSNode in your workspace
-You can stream your webcam using
+This will create a link to the [rgbd_acquisition ROSNode](https://github.com/AmmarkoV/RGBDAcquisition/tree/master/3dparty/ROS/rgbd_acquisition) in your workspace and allow you to stream your webcam (/dev/video0) using
 
 ```
 roslaunch rgbd_acquisition rgb_acquisition.launch moduleID:=V4L2 deviceID:=/dev/video0 width:=640 height:=480 framerate:=30
