@@ -9,7 +9,7 @@ cd ..
 ROS_WORKPACE=`pwd`
 ln -s mocapnet_rosnode/dependencies/MocapNET/dependencies/RGBDAcquisition/3dparty/ROS/rgbd_acquisition
 cd rgbd_acquisition/src
-ln -s ../../mocapnet_rosnode/dependencies/MocapNET/dependencies/RGBDAcquisition/acquisition/Acquisition.h
-ln -s ../../mocapnet_rosnode/dependencies/MocapNET/dependencies/RGBDAcquisition/tools/Calibration/calibration.h
+ln -s $ROS_WORKPACE/mocapnet_rosnode/dependencies/MocapNET/dependencies/RGBDAcquisition/acquisition/Acquisition.h
+ln -s $ROS_WORKPACE/mocapnet_rosnode/dependencies/MocapNET/dependencies/RGBDAcquisition/tools/Calibration/calibration.h
 
 exit 0
