@@ -565,12 +565,12 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
                 float euler[3]={0};
                 float quaternion[4]={0};
                 float x,y,z,xRotation,yRotation,zRotation;
-                char parentName[512];  
-                char jointName[512];  
+                char parentName[512]={0};  
+                char jointName[512]={0};  
                 tf2::Quaternion rX,rY,rZ,qXYZW;
        
                 //getBVHNumberOfValuesPerFrame
-                for (BVHJointID jointID=0; jointID<=bvhMotion.jointHierarchySize; jointID++)
+                for (BVHJointID jointID=0; jointID<bvhMotion.jointHierarchySize; jointID++)
                  {
                   if (jointID!=0)
                   {
