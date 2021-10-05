@@ -9,7 +9,8 @@ cd ..
 
 source ../devel/setup.bash
 
-screen -S RAISIM -d -m roslaunch raisim_ros nao.launch 
+screen -S CORE -d -m roscore
+screen -S RAISIM -d -m roslaunch raisim_ros nao.launch
 screen -S IK -d -m roslaunch whole_body_ik nao_wbc.launch
 screen -S ACTIONCLIENT -d -m rosrun  action_client_test pose_control.py
  
