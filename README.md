@@ -36,7 +36,7 @@ Feel free to make your own ros launcher by using the default [mocapnet_rosnode.l
 
 The default settings are `/camera/rgb/image_rect_color` for the RGB image topic, `/camera/rgb/camera_info` for the camera calibration and map as the TF root. 
 
-You can download [this sample rosbag](https://github.com/FORTH-ModelBasedTracker/mocapnet_rosnode/raw/main/doc/sample.bag) to take a look on the TF tree..
+You can download [this sample rosbag](https://github.com/FORTH-ModelBasedTracker/mocapnet_rosnode/raw/main/doc/sample.bag) to take a look on the TF tree by using rosbag play doc/sample.bag --loop 
 
 __Step 4 (Optional)__: If you don't have your own ROS package to acquire RGB input you can use the bundled camera acquisition software by executing the following instructions
 ```
