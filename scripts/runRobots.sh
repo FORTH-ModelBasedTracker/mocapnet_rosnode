@@ -24,11 +24,4 @@ screen -list
 
 
 
-
-
-
-
-
-
-
 exit 0
