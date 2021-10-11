@@ -509,17 +509,20 @@ def getMocapNETJointNames():
  bn.append("toe5-3.l_Yrotation") # 497
  return bn
 #---------------------------------------------------
-
-
-
+ 
 
 #remove or add the message type
 from std_msgs.msg import Float32MultiArray
 
+mocapnetLabels = getMocapNETJointNames()
+
+
 #define function/functions to provide the required functionality
 def mnet_new_pose_callback(msg):
     #make_something_here_with msg.data
-    rospy.loginfo("I heard %s", msg.data)
+    #rospy.loginfo("I heard %s", msg.data)
+    for i in range(0,len(msg.data)):
+        print (i,"[",mocapnetLabels[i],"] = ",msg.data[i]," ")
 
 if __name__=='__main__':
     #Add here the name of the ROS. In ROS, names are unique named.
