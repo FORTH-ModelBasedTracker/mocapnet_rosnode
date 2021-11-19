@@ -18,6 +18,9 @@ add_definitions(-DUSE_TENSORFLOW2)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse2")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse3")
 
+add_definitions(-DUSE_OPENCV)
+add_definitions(-DUSE_BVH)
+
 set(MOCAPNET_LIBRARIES  
     "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/MocapNET/libMocapNETLib2.so"
     "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/MocapNET/libJointEstimator2D.so"
@@ -51,7 +54,7 @@ generate_messages(DEPENDENCIES std_msgs mocapnet_rosnode)
 catkin_package()
 
 include_directories( ${catkin_INCLUDEDIR} ${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDEDIR} "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/MocapNET/dependencies/libtensorflow/include")
-add_executable(mocapnet_rosnode  src/main.cpp)
+add_executable(mocapnet_rosnode  src/main.cpp src/bvhGUI2.cpp)
 target_link_libraries(mocapnet_rosnode  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}  ${MOCAPNET_LIBRARIES} )
 
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencpp)

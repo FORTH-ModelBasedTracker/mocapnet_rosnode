@@ -641,16 +641,32 @@ void rgbCallback(const sensor_msgs::Image::ConstPtr rgb_img_msg,const sensor_msg
   
   
   
+//Simplest ever switch to bvhGUI code :P
+int bvhGUIMain(int argc, char *argv[]);
+
   
 int main(int argc, char **argv)
 {    
+    //Terrible hack to cheaply embed my bvhgui code without more complexity..
+    for (int i=0; i<argc; i++)
+        {
+          if ( strcmp(argv[i],"--bvhgui") == 0)
+              {
+                 ROS_INFO("Entering special BVHGUI mode");
+                 return bvhGUIMain( argc, argv); 
+              }
+        }
+
+
+
+
     //https://github.com/AmmarkoV/RGBDAcquisition/tree/master/3dparty/ROS/rgbd_acquisition
     //==================================================================================================================================
     //roslaunch rgbd_acquisition rgb_acquisition.launch deviceID:=sven.mp4-data moduleID:=TEMPLATE width:=1920 height:=1080 framerate:=1
     //roslaunch mocapnet_rosnode mocapnet_rosnode.launch
     //rviz
     //==================================================================================================================================
-
+         
     ROS_INFO("Initializing MocapNET ROS Wrapper");
     try
     {
