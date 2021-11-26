@@ -368,7 +368,8 @@ int bvhGUIMain(int argc, char *argv[])
         std::string name; 
 
         ROS_INFO("Initializing Parameters..");
-        
+
+        private_node_handle.param("name", name , std::string("mocapnet_rosnode")); 
         private_node_handle.param("tfTargetBVHFilename", tfTargetBVHFilename, std::string("dataset/headerWithHeadAndOneMotion.bvh"));
         //private_node_handle.param("fromRGBTopic", fromRGBTopic, std::string(camRGBRaw));
         //private_node_handle.param("fromRGBTopicInfo", fromRGBTopicInfo, std::string(camRGBInfo));
@@ -396,13 +397,14 @@ int bvhGUIMain(int argc, char *argv[])
 
 
 
-
+    ros::Rate limiter(8);
 
 
 
     while(!state.stop)
         {
             ros::spinOnce();
+            limiter.sleep();
             if (useBVH)
                 {
                     unsigned int mIDStart=state.frameID * bvhMotion.numberOfValuesPerFrame;
@@ -642,9 +644,10 @@ int bvhGUIMain(int argc, char *argv[])
 
                              lastBroadcastedFrame = state.frameID;
                              pub.publish(bvhFrame);
+                             //fprintf(stderr,"publishing BVH frame \n");
                           }
 
-            waitKey(15);
+            waitKey(1);
 
             if (useBVH)
                 {
