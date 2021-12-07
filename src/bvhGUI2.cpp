@@ -163,6 +163,7 @@ int bvhGUIMain(int argc, char *argv[])
     int forcePosition=1; //By default we want the output to be centered..
     int forceRotation=0;
     float forcedRotation=0;
+    float requestedRate = 8;
 
     const char * bvhFilename=0;
 
@@ -171,7 +172,14 @@ int bvhGUIMain(int argc, char *argv[])
 
     for (int i=0; i<argc; i++)
         {
-            if (strcmp(argv[i],"--distance")==0)
+            if (strcmp(argv[i],"--rate")==0)
+                {
+                    if(argc>i+1)
+                        {
+                            requestedRate=atof(argv[i+1]);
+                        }
+                }
+            else if (strcmp(argv[i],"--distance")==0)
                 {
                     if(argc>i+1)
                         {
@@ -362,8 +370,7 @@ int bvhGUIMain(int argc, char *argv[])
         ros::NodeHandle nh;
         ros::NodeHandle private_node_handle("~");
         ros::NodeHandle * nhPtr = &nh;
- 
-        float rate = 30;
+  
         std::string tfTargetBVHFilename;
         std::string name; 
 
@@ -373,7 +380,7 @@ int bvhGUIMain(int argc, char *argv[])
         private_node_handle.param("tfTargetBVHFilename", tfTargetBVHFilename, std::string("dataset/headerWithHeadAndOneMotion.bvh"));
         //private_node_handle.param("fromRGBTopic", fromRGBTopic, std::string(camRGBRaw));
         //private_node_handle.param("fromRGBTopicInfo", fromRGBTopicInfo, std::string(camRGBInfo));
-        private_node_handle.param("rate",rate);
+        private_node_handle.param("rate",requestedRate);
         //private_node_handle.param("joint2DEstimator", joint2DEstimatorName, std::string("forth"));
         //private_node_handle.param("rate",rate);
         //private_node_handle.param("publishCameraTF",publishCameraTF,1); 
@@ -397,7 +404,7 @@ int bvhGUIMain(int argc, char *argv[])
 
 
 
-    ros::Rate limiter(8);
+       ros::Rate limiter(requestedRate);
 
 
 
